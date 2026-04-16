@@ -1,12 +1,12 @@
 author: Kai Ni, Constantin Stanca, Charlie Hammond
-id: enterprise-clearing---settlement-data-platform
+id: enterprise-clearing-settlement-data-platform
 summary: Built entirely on Snowflake Dynamic Tables, it provides a modern, scalable architecture to process over 5.1 million transactions while ensuring data quality and delivering instant business intelligence.
 categories: snowflake-site:taxonomy/solution-center/certification/certified-solution
 environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/enterprise-clearing---settlement-data-platform
+fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/enterprise-clearing-settlement-data-platform
 
 # Enterprise Clearing & Settlement Data Platform
 <!-- ------------------------ -->
