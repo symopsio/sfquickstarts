@@ -55,40 +55,7 @@ Events land as raw JSON strings in a single **event** column in the bronze Icebe
 
 ### Architecture
 
-```mermaid
-flowchart TD
-    subgraph Generation["Data Generation"]
-        PyGen["Python Generator\nBalloon Pop Events"]
-    end
-
-    subgraph AWS["AWS"]
-        GlueCat["Glue Data Catalog\nballoon_game_events table"]
-        S3["S3 Warehouse\ns3://bucket/iceberg/"]
-        LF["Lake Formation\nVended Credentials"]
-    end
-
-    subgraph Snowflake["Snowflake"]
-        CI["Catalog Integration\nGlue Iceberg REST + SigV4"]
-        CLD["Catalog-Linked Database\nballoon_game_events"]
-        DTs["Dynamic Iceberg Tables\n5 silver pipelines"]
-        ExtVol["Silver External Volume"]
-        SiS["Streamlit in Snowflake"]
-        HIRC["Horizon REST Catalog HIRC"]
-    end
-
-    DuckDB["DuckDB\nCross-Engine Access"]
-
-    PyGen -->|PyIceberg write| GlueCat
-    PyGen -->|Iceberg files| S3
-    GlueCat --> CI
-    LF -->|vended credentials| CI
-    CI --> CLD
-    CLD --> DTs
-    DTs -->|writes Iceberg| ExtVol
-    DTs --> SiS
-    DTs -.-> HIRC
-    HIRC -->|Iceberg REST API| DuckDB
-```
+![Architecture](assets/architecture.png)
 
 ### Lab Layers
 
