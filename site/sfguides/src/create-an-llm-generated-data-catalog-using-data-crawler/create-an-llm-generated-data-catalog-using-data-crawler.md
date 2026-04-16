@@ -6,6 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
+fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/create-an-llm-generated-data-catalog-using-data-crawler
 
 # Create an LLM-generated Data Catalog using Data Crawler
 <!-- ------------------------ -->
@@ -21,6 +22,8 @@ Examples of where one might want to use the Data Crawler include:
 
 <!-- ------------------------ -->
 ## Solution Architecture: LLM-Generated Data Catalog using Data Crawler
+
+![Architecture Diagram](assets/data-crawler-ref-architecture.png)
 
 * For this utility, we create a Snowpark for Python stored procedure to crawl any database or schema to catalog tables and views using Cortex Large Language Model (LLMs).
 * The Data Crawler will execute an asynchronous stored procedure for each table/view to infer data contents and relationships based on metadata, sample data, and neighbor table/views in the same schema.

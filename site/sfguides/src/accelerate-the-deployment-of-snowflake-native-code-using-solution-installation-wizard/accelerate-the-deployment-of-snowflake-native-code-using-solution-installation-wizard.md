@@ -6,6 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
+fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/accelerate-the-deployment-of-snowflake-native-code-using-solution-installation-wizard
 
 # Advance Snowflake Native Code Deployment
 <!-- ------------------------ -->
@@ -21,6 +22,8 @@ Examples of where one might want to implement the Solution Installation Wizard i
 
 <!-- ------------------------ -->
 ## Solution Architecture: Solution Installation Wizard
+
+![Architecture Diagram](assets/solution-installation-wizard-architecture.png)
 
 * The Provider configures script steps into metadata tables and wraps them into a Native App
 * The Provider publishes the Native App to the Snowflake Marketplace

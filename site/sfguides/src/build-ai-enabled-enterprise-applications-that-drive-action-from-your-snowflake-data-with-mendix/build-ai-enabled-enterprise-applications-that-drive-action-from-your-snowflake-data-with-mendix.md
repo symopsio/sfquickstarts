@@ -1,11 +1,12 @@
 author: Rick Cameron, Robert Van 't Hof
 id: build-ai-enabled-enterprise-applications-that-drive-action-from-your-snowflake-data-with-mendix
-summary: * Mendix is the low-code leader, helping organizations build better software, faster. * Seamless integrations for Snowflake provide simple, direct access to your Snowflake data from within the Mendix developer experience, while preserving the highest
+summary: Mendix is the low-code leader, helping organizations build better software, faster. Seamless integrations for Snowflake provide simple, direct access to your Snowflake data from within the Mendix developer experience.
 categories: snowflake-site:taxonomy/solution-center/certification/partner-solution
 environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
+fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/build-ai-enabled-enterprise-applications-that-drive-action-from-your-snowflake-data-with-mendix
 
 # Build AI-Enabled Enterprise Applications That Drive Action From Your Snowflake Data With Mendix
 <!-- ------------------------ -->
@@ -19,6 +20,8 @@ feedback link: https://github.com/Snowflake-Labs/sfguides/issues
 
 <!-- ------------------------ -->
 ## Solution Architecture: Mendix/Snowflake Connectivity for Data & AI
+
+![Build AI-enabled enterprise applications](assets/build-ai-enabled-enterprise-applications-that-drive-action-from-your-snowflake-data-with-mendix.png)
 
 * Mendix Data Loader - A Snowflake Native App from the Snowflake Marketplace to load data from your Mendix application landscape into Snowflake.
 * External Database Connector and REST SQL Connector - Connectors that are used within Mendix Applications to bi-directionally work with Snowflake Data & AI/ML capabilities (eg. Cortex AI) with ease.

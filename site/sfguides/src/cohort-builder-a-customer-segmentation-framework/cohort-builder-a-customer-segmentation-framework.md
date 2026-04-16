@@ -6,6 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
+fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/cohort-builder-a-customer-segmentation-framework
 
 # Cohort Builder: A Customer Segmentation Framework
 <!-- ------------------------ -->
@@ -19,6 +20,8 @@ The Cohort Builder is a versatile solution designed to facilitate the creation, 
 
 <!-- ------------------------ -->
 ## Solution Architecture: Cohort Builder for Customer Segmentation
+
+![Architecture Diagram](assets/cohort-builder.png)
 
 * User-Friendly Interface: The Cohort Builder offers an intuitive interface for users to create and manage cohorts based on various criteria, making it accessible to both technical and non-technical users.
 * Scalable Data Processing: It leverages scalable data pipelines to efficiently process large datasets, ensuring quick and accurate cohort segmentation and analysis.
