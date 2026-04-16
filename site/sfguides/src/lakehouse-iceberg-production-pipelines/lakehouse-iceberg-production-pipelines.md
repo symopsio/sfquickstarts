@@ -5,8 +5,8 @@ language: en
 summary: Stop pipeline sprawl and the cost of data duplication. In this advanced lab, you will learn to perform secure, in-place transformations across your entire data estate. You will connect externally managed Iceberg tables with Catalog Linked Databases to always work on fresh data without ETL, build efficient and declarative pipelines with Dynamic Tables for Iceberg preserving multi-engine access to your data, and implement business continuity to ensure your production data is always available.
 environments: web
 status: Published
-feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines
+feedback link: <https://github.com/Snowflake-Labs/sfguides/issues>
+fork repo link: <https://github.com/Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines>
 
 # Lakehouse Transformations: Build Production Pipelines for your Iceberg Tables
 <!-- ------------------------ -->
@@ -51,7 +51,7 @@ The lab uses a balloon-popping game as the sample workload. A Python generator s
 | **favorite_color_bonus** | boolean | Whether a scoring bonus was applied |
 | **event_ts** | timestamp | Event time |
 
-Events land as raw JSON strings in a single **event** column in the bronze Iceberg table **balloon_game_events**. The silver layer uses `PARSE_JSON` to project and aggregate these fields into five production-ready tables.
+Events land as raw JSON strings in a single **event** column in the bronze Iceberg table **balloon_game_events**. The silver layer uses **PARSE_JSON** to project and aggregate these fields into five production-ready tables.
 
 ### Architecture
 
@@ -88,7 +88,7 @@ Repository: [Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines](http
 ### Accounts and Permissions
 
 - AWS account with a named profile (**AWS_PROFILE**) that can create and update Glue databases, manage IAM roles, and access S3
-- Snowflake account with `ACCOUNTADMIN` or a role with `CREATE INTEGRATION`, `CREATE DATABASE`, and `CREATE STREAMLIT` privileges
+- Snowflake account with **ACCOUNTADMIN** or a role with **CREATE INTEGRATION**, **CREATE DATABASE**, and **CREATE STREAMLIT** privileges
 - Snowflake CLI connection configured for that account — `snow connection list` and `snow connection test` both succeed
 
 ### Required Tools
@@ -105,9 +105,9 @@ This repo targets Python 3.12+. `uv` manages the interpreter and all dependencie
 | **envsubst** | Renders IAM policy templates (gettext package) | *brew install gettext* | *sudo apt install gettext-base* | WSL2 recommended |
 | **jq** | JSON checks at the shell | *brew install jq* | *sudo apt install jq* | *scoop install jq* |
 
-After `uv sync`, use `uv run snow …` from the repo root, or add `.venv/bin` (macOS/Linux) or `.venv\Scripts` (Windows) to your `PATH`.
+After `uv sync`, use `uv run snow …` from the repo root, or add `.venv/bin` (macOS/Linux) or `.venv\Scripts` (Windows) to your PATH.
 
-**Windows note:** If `task check-tools` fails only on `envsubst`, use WSL2 or run `uv run bronze-cli render-iam` (the Python path) instead.
+> **Windows note:** If `task check-tools` fails only on `envsubst`, use WSL2 or run `uv run bronze-cli render-iam` (the Python path) instead.
 
 ### Recommended Tools
 
@@ -125,18 +125,16 @@ Sync Python dependencies:
 uv sync
 ```
 
-Set your AWS profile and run the prerequisite check:
+Configure your AWS profile and run the prerequisite check. The check will report errors for any missing required binaries, provide warnings for recommended (but not required) tools, and use `aws sts get-caller-identity` to validate your AWS session. Address any missing tools or credential issues, then rerun the check until you see **All required tools are available.**
 
 ```bash
 export AWS_PROFILE=your-profile
 task check-tools
 ```
 
-`task check-tools` runs `tools/check_lab_prereqs.py`: it fails on missing required binaries, warns for recommended tools, then runs `aws sts get-caller-identity` to confirm your AWS session. Fix any missing entries and refresh credentials if STS fails, then re-run until you see **All required tools are available.**
-
 ### Environment Inputs
 
-Copy `.env.example` to `.env` and fill in your values. Never commit `.env`.
+Copy `.env.example` to `.env` and fill in your values.
 
 ```bash
 cp .env.example .env
@@ -207,8 +205,6 @@ S3TABLES_NAMESPACE=balloon_pops
 
 This is the first hands-on chapter. All downstream Snowflake steps assume the bronze Iceberg tables exist in AWS Glue and that the bronze ARNs and Glue metadata are ready.
 
-**Before starting:** Confirm `task check-tools` passes and `aws sts get-caller-identity` succeeds with **AWS_PROFILE** and **AWS_REGION** set in `.env`.
-
 ### Set Up and Load
 
 Render the IAM policy template (optional — run first if attaching a new IAM role):
@@ -255,7 +251,7 @@ task bronze:render-iam-dry-run
 |---------------|-------|--------|
 | **GLUE_DATABASE** (e.g. *ksampath_balloon_pops*) | **balloon_game_events** | **event** — STRING, one JSON object per row |
 
-Each JSON object contains: **player**, **balloon_color**, **score**, **page_id**, **favorite_color_bonus**, **event_ts**. Snowflake Dynamic Iceberg Tables use `PARSE_JSON` and variant paths to project these fields into typed columns.
+Each JSON object contains: **player**, **balloon_color**, **score**, **page_id**, **favorite_color_bonus**, **event_ts**. Snowflake Dynamic Iceberg Tables use **PARSE_JSON** and variant paths to project these fields into typed columns.
 
 Print a copy-paste sheet of ARNs and exports needed for Snowflake catalog integration SQL:
 
@@ -271,9 +267,9 @@ After `task bronze:load` and after completing step 1 of the Snowflake CLD chapte
 task bronze:lakeformation-setup
 ```
 
-This step registers **BRONZE_BUCKET_NAME** with Lake Formation using a dedicated data-access IAM role (`HybridAccessEnabled=false`, `WithFederation=false`), clears the default Glue IAM-only table permissions on **GLUE_DATABASE**, and grants `SELECT` and `DESCRIBE` to your Snowflake SIGV4 role.
+This step registers **BRONZE_BUCKET_NAME** with Lake Formation using a dedicated data-access IAM role (**HybridAccessEnabled=false**, **WithFederation=false**), clears the default Glue IAM-only table permissions on **GLUE_DATABASE**, and grants **SELECT** and **DESCRIBE** to your Snowflake SIGV4 role.
 
-**Keep the SIGV4 and LF data-access roles separate.** Using the same role causes credential vending errors — see the Troubleshooting chapter for error code `094120`.
+**Keep the SIGV4 and LF data-access roles separate.** Using the same role causes credential vending errors — see the Troubleshooting chapter for error code **094120**.
 
 Preview the Lake Formation setup without any AWS writes:
 
@@ -321,17 +317,17 @@ This chapter creates the Glue Iceberg REST catalog integration, tightens IAM tru
 
 - Bronze tables are loaded; `.aws-config/glue-database.json` was written by `task bronze:glue-setup`
 - `snow connection test` succeeds
-- Lake Formation is configured for `VENDED_CREDENTIALS` — run `task bronze:lakeformation-setup` after completing step 1 of the Detailed Path below
+- Lake Formation is configured for **VENDED_CREDENTIALS** (see **Lake Formation Setup** in the Bronze chapter)
 
 ### Easy Path — Interactive Notebook
 
-Open `notebooks/cld_lab_guide.ipynb` in Snowflake Notebooks for an interactive walkthrough. The notebook covers the same steps with inline IAM policy output and live SQL execution.
+Open [cld_lab_guide.ipynb](https://github.com/Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines/blob/main/notebooks/cld_lab_guide.ipynb) in Snowflake Notebooks for an interactive walkthrough. The notebook covers the same steps with inline IAM policy output and live SQL execution.
 
 Follow the **Detailed Path** below for step-by-step shell commands.
 
 ### Detailed Path
 
-> **Role requirement:** The commands in this chapter require `ACCOUNTADMIN` or a role with `CREATE INTEGRATION`, `CREATE DATABASE`, and `GRANT` privileges. The lab defaults to **SNOWFLAKE_ROLE** = `ACCOUNTADMIN` set in `.env`. Confirm this before running any `snow sql` commands.
+> **Role requirement:** The commands in this chapter require **ACCOUNTADMIN** or a role with **CREATE INTEGRATION**, **CREATE DATABASE**, and **GRANT** privileges. The lab defaults to **SNOWFLAKE_ROLE** = **ACCOUNTADMIN** set in `.env`. Confirm this before running any `snow sql` commands.
 
 #### Create IAM Role
 
@@ -456,7 +452,7 @@ List Iceberg tables in the discovered namespace:
 SHOW ICEBERG TABLES IN SCHEMA balloon_game_events."<remote_schema>";
 ```
 
-Read raw events and project fields using `PARSE_JSON`:
+Read raw events and project fields using **PARSE_JSON**:
 
 ```sql
 SELECT
@@ -480,13 +476,13 @@ Open **Lake Formation** → **Data catalog** → **Databases** → open **GLUE_D
 
 **2. Data lake location:**
 
-Open **Permissions** → **Data lake locations**. Confirm `s3://<BRONZE_BUCKET_NAME>/iceberg/` is registered with `HybridAccessEnabled=false` and `WithFederation=false` using a dedicated LF data-access role that is **different** from the SIGV4 role.
+Open **Permissions** → **Data lake locations**. Confirm `s3://<BRONZE_BUCKET_NAME>/iceberg/` is registered with **HybridAccessEnabled=false** and **WithFederation=false** using a dedicated LF data-access role that is **different** from the SIGV4 role.
 
 ![Lake Formation — data lake storage settings](assets/aws_lf_data_lake_settings.png)
 
 **3. Data permissions:**
 
-Open **Permissions** → **Data permissions**. Confirm the SIGV4 role has `DESCRIBE` on the database and `SELECT`, `DESCRIBE` on the table wildcard.
+Open **Permissions** → **Data permissions**. Confirm the SIGV4 role has **DESCRIBE** on the database and **SELECT**, **DESCRIBE** on the table wildcard.
 
 ![Lake Formation — data permissions for the Snowflake catalog role](assets/aws_lf_data_permissions.png)
 
@@ -498,10 +494,9 @@ Open **Lake Formation** → **Administration** → **Application integration set
 
 #### Full Reference Sequence
 
-End-to-end command sequence from the repo root:
+End-to-end Snowflake command sequence (assumes tools verified and bronze loaded):
 
 ```bash
-task check-tools
 task bronze:snowflake-summary
 task snowflake:create-glue-catalog-read-role
 # Return to Bronze chapter here and run: task bronze:lakeformation-setup
@@ -530,9 +525,9 @@ With bronze readable through the CLD, add Snowflake-managed [Dynamic Iceberg Tab
 
 ### Easy Path — Interactive Notebook
 
-Open `notebooks/dt_lab_guide.ipynb` in Snowflake Notebooks for an interactive walkthrough. The notebook covers each DT creation step with inline SQL execution and verification queries.
+Open [dt_lab_guide.ipynb](https://github.com/Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines/blob/main/notebooks/dt_lab_guide.ipynb) in Snowflake Notebooks for an interactive walkthrough. The notebook covers each DT creation step with inline SQL execution and verification queries.
 
-Follow the **Detailed Path** below for step-by-step shell commands.
+Use the **Detailed Path** below for step-by-step shell commands.
 
 ### Detailed Path
 
@@ -577,9 +572,11 @@ SILVER_EXTVOLUME_BUCKET_SLUG=myname-balloon-silver task dt:extvol-create -- --ou
 ```
 
 > **After creation:** Copy the volume name from the output and add it to `.env`:
+>
 > ```
 > SNOWFLAKE_ICEBERG_EXTERNAL_VOLUME=<volume-name-from-output>
 > ```
+>
 > All subsequent `task dt:*` commands and `task dt:generate-sql` read this variable automatically.
 
 Verify connectivity for the new volume:
@@ -658,8 +655,8 @@ The `snowflake/sis/snowflake.yml` is the ground truth for deployment defaults. T
 
 **Prerequisites:**
 
-- `03_dt_pipelines` applied; `SHOW DYNAMIC TABLES LIKE 'dt_%' IN SCHEMA balloon_silver.silver` lists all five **dt_*** tables
-- Your role has `SELECT` on `balloon_silver.silver.*` and `CREATE STREAMLIT` on `balloon_silver.apps`
+- `03_dt_pipelines` applied and all five `dt_*` tables exist in `balloon_silver.silver`
+- Your role has **SELECT** on `balloon_silver.silver.*` and **CREATE STREAMLIT** on `balloon_silver.apps`
 - Snowflake CLI 3.14+ installed (via `uv sync`, then use `uv run snow`)
 
 ### Deploy the App
@@ -733,8 +730,8 @@ DuckDB authenticates using a Programmatic Access Token (PAT). The PAT is exchang
 ### Prerequisites
 
 - Silver Dynamic Iceberg Tables created and refreshed at least once
-- Snowflake role with `SELECT` on the silver DTs
-- DuckDB installed locally (`brew install duckdb` or via `uv`)
+- Snowflake role with **SELECT** on the silver DTs
+- DuckDB available in the project Python environment — `uv sync` installs it automatically
 - A PAT scoped to a service account role (steps below)
 
 ### Service Account Setup
@@ -796,7 +793,7 @@ SNOWFLAKE_PASSWORD=<paste-output-of-task-snowflake:pat-print>
 
 ### Easy Path — Interactive Notebook
 
-Open `notebooks/duckdb_lab_guide.ipynb` for a step-by-step walkthrough. The notebook loads the PAT from `.env`, installs the DuckDB Iceberg extension, attaches **balloon_silver** via HIRC, and queries all five silver DTs.
+Open [duckdb_lab_guide.ipynb](https://github.com/Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines/blob/main/notebooks/duckdb_lab_guide.ipynb) for a step-by-step walkthrough. The notebook loads the PAT from `.env`, installs the DuckDB Iceberg extension, attaches **balloon_silver** via HIRC, and queries all five silver DTs.
 
 ### Key DuckDB SQL
 
@@ -976,12 +973,12 @@ This deletes only roles tagged `project=balloon-popper-demo` and `purpose=snowfl
 
 ### Credential Vending Error 094120
 
-If `SYSTEM$CATALOG_LINK_STATUS` returns error code `094120` ("Failed to retrieve credentials from the Catalog"), work through this checklist in order:
+If **SYSTEM$CATALOG_LINK_STATUS** returns error code `094120` ("Failed to retrieve credentials from the Catalog"), work through this checklist in order:
 
 1. **Two separate IAM roles:** The SIGV4 role (Snowflake catalog signer) and the LF data-access role passed to `register-resource --role-arn` must be different principals. Using the same role causes credential vending failures.
 2. **Register-resource flags:** The warehouse S3 location must be registered with `HybridAccessEnabled=false` and `WithFederation=false`. Hybrid mode produces unpredictable vending behavior.
 3. **Glue default permissions:** Run `aws glue update-database` with empty `CreateTableDefaultPermissions` on **GLUE_DATABASE** so new tables follow Lake Formation mode, not IAM-only defaults.
-4. **LF grants:** The SIGV4 role must have `DESCRIBE` on the database and `SELECT`, `DESCRIBE` on the table wildcard via Lake Formation `grant-permissions`.
+4. **LF grants:** The SIGV4 role must have **DESCRIBE** on the database and **SELECT**, **DESCRIBE** on the table wildcard via Lake Formation `grant-permissions`.
 5. **Recreate the CLD:** After fixing any LF or IAM setting, run `CREATE OR REPLACE DATABASE … LINKED_CATALOG = ( … )`. `ALTER DATABASE … RESUME DISCOVERY` only retries table/schema discovery — it does not re-establish the catalog connection.
 
 ### Glue Schema Not Found
@@ -1004,7 +1001,7 @@ IAM trust policy changes can take up to 30 seconds to propagate. Wait briefly an
 
 ### Empty Windowed DTs
 
-**dt_realtime_scores**, **dt_balloon_colored_pops**, and **dt_color_performance_trends** use 15-second `TIME_SLICE` windows. They are empty when all bronze events fall in a single bucket or when DTs have not yet completed an initial refresh.
+**dt_realtime_scores**, **dt_balloon_colored_pops**, and **dt_color_performance_trends** use 15-second **TIME_SLICE** windows. They are empty when all bronze events fall in a single bucket or when DTs have not yet completed an initial refresh.
 
 Load additional events:
 
@@ -1038,11 +1035,11 @@ See the [BCR-2114 behavior change](https://docs.snowflake.com/en/release-notes/b
 
 ### DuckDB HIRC: Role Not Found
 
-HIRC does not support role names with hyphens. If you see "Role not found", ensure the role name uses underscores only — `duckdb_silver_reader` not `duckdb-silver-reader`.
+HIRC does not support role names with hyphens. If you see "Role not found", ensure the role name uses underscores only — **duckdb_silver_reader** not `duckdb-silver-reader`.
 
 ### DuckDB HIRC: Table Does Not Exist
 
-If `SHOW ALL TABLES` returns results but a `SELECT` fails with "table does not exist", the identifiers are case-sensitive. Use uppercase schema and table names:
+If **SHOW ALL TABLES** returns results but a **SELECT** fails with "table does not exist", the identifiers are case-sensitive. Use uppercase schema and table names:
 
 ```sql
 SELECT * FROM balloon_silver.SILVER.DT_PLAYER_LEADERBOARD LIMIT 5;
