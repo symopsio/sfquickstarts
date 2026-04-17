@@ -1,0 +1,449 @@
+author: Paul Hooper
+id: architect-an-outcome-oriented-data-vault-in-snowflake
+language: en
+summary: Architect an Outcome-Oriented Data Vault in Snowflake
+categories: snowflake-site:taxonomy/solution-center/certification/quickstart, snowflake-site:taxonomy/product/platform, snowflake-site:taxonomy/snowflake-feature/business-intelligence, snowflake-site:taxonomy/snowflake-feature/lakehouse-analytics
+environments: web
+status: Published
+feedback link: https://github.com/Snowflake-Labs/sfguides/issues
+fork repo link: https://github.com/sfc-gh-phooper/sfquickstarts
+open in snowflake: <optional but modify to link into the product>
+
+# Defensible Analytics using Data Vault and Snowflake
+<!-- ------------------------ -->
+## Overview 
+
+Today, AI tools interact with data on a daily basis, and enterprises are increasingly recognizing the need for a mature [system of information management](https://datavaultalliance.com/strategy-operating/system-information-management/) that provides **defensible analytics** -- analytics based upon auditable, trustworthy enterprise memory, coupled with clear, unambiguous business context. This is rarely achieved through a series of isolated and disconnected information technology projects. Writing governance documentation that goes unread, is disregarded, or otherwise fails to be executed, is a wasted effort.
+
+Successful enterprises require a reliable **system of information management**, a system that not only transforms data, but continuously provides connected information, is aligned to business needs, accompanied by business context, using business vocabulary, with auditable lineage to the originating source. This system must generate the evidence needed to make confident decisions, defend those decisions, and enable consistent answers to questions posed through AI agents. This system must be responsive to change, which comes at the speed of business, compatible with an agile approach to implementation, maximizing reuse and avoiding duplication of effort, yet never destroying the auditability and reliability of what has already been delivered.
+
+Data are assets, relevant to our decision-making processes, reducing the effort of, and increasing the quality, speed, and execution of our decisions. Better decision-making improves the performance of our enterprise for all stakeholders. Knowing that, how do we manage information appropriately?
+
+In 2018, at the World-Wide Data Vault Consortium (WWDVC), [Bill Inmon](https://en.wikipedia.org/wiki/Bill_Inmon) presented a slightly updated version of his classic definition of the Data Warehouse. He stated, "A data warehouse is a subject-oriented, integrated (by business key), time-variant and non-volatile collection of data in support of management’s **decision-making** process, and/or in support of **auditability** as a system-of-record." He followed that statement with his recommendation of the Data Vault system to achieve that vision. It's important to note that his definition says nothing about schema-on-write or only structured data. The phrase "collection of data" includes [unstructured](https://docs.snowflake.com/en/user-guide/unstructured-intro) and [semi-structured](https://docs.snowflake.com/en/user-guide/semistructured-intro) data. Nothing beats the Snowflake AI Data Cloud when it comes to handling those diverse types of data.
+
+Data Vault, as invented by [Dan Linstedt](https://datavaultalliance.com/#about), was never intended as merely a collection of data modeling standards compatible with an agile implementation methology. Data Vault has always been of a complete system of information management, with key pillars of methodology, architecture, and model, always intended to support informed decision-making processes and deliver real return on investment, impact, business outcomes. This guide cannot possibly detail the entire Data Vault system. To gain a full understanding of Data Vault, we recommend working with experts & partners from [Data Vault Alliance](https://datavaultalliance.com/).
+
+In Data Vault 2.1, Linstedt has clearly articulated a logical architecture consisting of gated [zones](https://www.youtube.com/watch?v=OkI1LWsz9Nc). At the core are the Landing Zone, the Enterprise Memory Zone, and the Information Delivery Zone. However, any logical architecture must progress to physical architecture before it can be realized in a functional implementation. This guide helps you learn how that may be accomplished in the Snowflake AI Data Cloud.
+
+### Prerequisites
+- Familiarity with [Snowflake key concepts and architecture](https://docs.snowflake.com/en/user-guide/intro-key-concepts)
+- Familiarity with [Data Vault methodology and architecture](https://datavaultalliance.com/#resources)
+
+### What You’ll Learn
+- How to structure a Snowflake account for Data Vault
+- How to enable domain-oriented development and governance in your Data Vault
+
+### What You’ll Need 
+- A Snowflake account -- we recommend starting with a [trial](https://trial.snowflake.com/) account
+
+### What You’ll Build 
+- A Data Vault environment using Snowflake
+
+
+<!-- ------------------------ -->
+## Reference Architecture
+
+Let’s start with the overall architecture to put everything in context. 
+
+![dbt_project.yml](assets/multitierdatavaultarchitecture.png)  
+
+On the very left of figure above we have a list of **data sources** that typically include a mix of operational databases, files, streaming event sources, SaaS apps, and more. The [Snowflake Marketplace](https://www.snowflake.com/en/product/features/marketplace/) allows us to tap into 3rd party data to augment our own.
+
+On the very right we have our ultimate **data consumers**: business users, AI agents, data scientists, IT systems or even other companies you decide to share your data with.
+
+Architecturally, we will consider the following zones:
+- **Transient Zone**: is used to transport ephemeral data from source systems and make it accessible for ingestion into Snowflake. [Snowflake Openflow](https://docs.snowflake.com/en/user-guide/data-integration/openflow/about) is an integration service that connects any data source and any destination with hundreds of processors supporting structured, semi-structured, and unstructured text, images, audio, video and sensor data. Additionally, the [Snowflake Ecosystem](https://docs.snowflake.com/en/user-guide/ecosystem) includes a wide array of industry-leading 3rd party tools and technologies that help organzations achieve these goals.
+- **Landing Zone**: is a managed persistent staging area (PSA), where data is ingested and kept as close as possible to its original state, as established by the source systems it came from. For this Snowflake has [multiple options](https://docs.snowflake.com/en/guides-overview-loading-data), including [bulk loading of files](https://docs.snowflake.com/en/user-guide/data-load-local-file-system), continuous loading of micro-batches of files through [Snowpipe](https://docs.snowflake.com/en/user-guide/data-load-snowpipe-intro), or continuous rows of data through [Snowpipe Streaming](https://docs.snowflake.com/en/user-guide/snowpipe-streaming/data-load-snowpipe-streaming-overview). Snowflake allows you to load and store structured, unstructured, and semi-structured in the original format whilst automatically optimizing the physical structure for efficient query access. But this zone isn't just a data dump. Per Data Vault 2.1, in this zone the data is immutable, stored as it was received from source, with no changes to the content. Here, data are [governed](https://docs.snowflake.com/en/guides-overview-govern) as assets. Metadata may be documented, data may be tagged, profiled, and encrypted. Snowflake's [storage lifecycle policies](https://docs.snowflake.com/en/user-guide/storage-management/storage-lifecycle-policies) may be used to automatically move older data to more cost-effective cool and cold archival tiers, keeping expenses down.
+- **Enterprise Memory Zone**: is where data are integrated by business key, where the data vault modeling patterns -- such as hubs, links, and satellites -- begin to be applied. Data enters the raw vault, sparsely built, where only hard business rules are applied, loading all records received from source.
+- **Information Delivery Zone**: a layer of consumer-oriented models. This can be implemented as a set (or multiple sets) of views. It is common to see the use of dimensional models (facts and dimensions, star or snowflake) or denormalized flat tables (for data science or sharing) but it could be any other modeling stye (e.g., unified star schema, supernova, key-value, document object mode, etc.) that fits best for your data consumer. The Business Vault contains data vault objects with soft business rules applied, augmenting the intelligence of the system, and potentially enhancing the performance of the consumer-facing views. Soft business rules may include the calculation of metrics, commonly used aggregations, master data records, PIT and Bridge tables helping to simplify access to bi-temporal view of the data with highly performant views of facts and dimensions. Snowflake’s scalability will support the required speed of access at any point of this data lifecycle. You should consider materialization of Business Vault and other Information Delivery objects as optional. This specific topic (virtualization) is going to be covered later in this article.
+
+With a brand new Snowflake account, objects are not automatically created to represent these logical concepts. We must create them, while building within the constraints of Snowflake's object hierarchy below.
+
+![dbt_project.yml](assets/objecthierarchy.png)
+
+
+<!-- ------------------------ -->
+## From Logical Architecture Zones to Implemented Snowflake Objects
+
+If you're familiar with Snowflake's [Data Cloud Deployment Framework (DCDF)](https://www.snowflake.com/en/developers/guides/dcdf-incremental-processing/), you might recognize parallels between the Data Vault zones and the DCDF databases: Raw, Integration, and Presentation. This is because databases are a great place to start for the physical implementation of the logical zones. Databases are not simply containers, but a key aspect of the physical architecture.
+
+In addition to the databases related to our Data Vault zones, a common platform database can serve to hold objects not specific to a specific zone.
+
+For the sake of simplicity, this guide will not delve into utilizing multiple Snowflake accounts. However, adopting a multi-account strategy, taking advantage of Snowflake's remarkable [Secure Data Sharing](https://docs.snowflake.com/en/user-guide/data-sharing-intro), could unlock significant value for your organization. A multi-account strategy is one where a single [Organization](https://docs.snowflake.com/en/user-guide/organizations) has multiple Accounts, each serving a specific purpose. This provides you with the flexibility to distribute databases across multiple accounts, where [shared read-only access to data](https://docs.snowflake.com/en/user-guide/data-sharing-intro) with zero copying, and thus enabling the use of different [Editions](https://docs.snowflake.com/en/user-guide/intro-editions), which enable different feature sets and have different compute pricing. Databases may also be [replicated for business continuity and disaster recovery purposes](https://docs.snowflake.com/en/user-guide/account-replication-config).
+
+Assuming you are using a new trial account, we'll start with some basics. We'll create a Platform Administrator role, as well as a virtual warehouse to use for basic administrative tasks, and a common platform database for common objects. This is meant to serve only as an example. Your role-based access control (RBAC) strategy and design may differ, but we'll use this example later in the guide.
+
+```sql
+-- Platform Administration Role ------------------------------------------------
+USE ROLE SECURITYADMIN;
+
+CREATE ROLE IF NOT EXISTS PLT_ADMIN
+  COMMENT = 'Platform administrator role for managing shared platform objects';
+
+GRANT ROLE PLT_ADMIN TO ROLE SYSADMIN;
+
+-- Administration Warehouse ----------------------------------------------------
+USE ROLE SYSADMIN;
+
+CREATE WAREHOUSE IF NOT EXISTS ADMIN_WH
+  WAREHOUSE_SIZE = 'XSMALL'
+  AUTO_SUSPEND = 60
+  AUTO_RESUME = TRUE
+  INITIALLY_SUSPENDED = TRUE
+  COMMENT = 'Administration warehouse for platform admin tasks';
+
+GRANT USAGE ON WAREHOUSE ADMIN_WH TO ROLE PLT_ADMIN;
+GRANT OPERATE ON WAREHOUSE ADMIN_WH TO ROLE PLT_ADMIN;
+
+-- Platform Database -----------------------------------------------------------
+CREATE DATABASE IF NOT EXISTS PLT
+  COMMENT = 'Common centralized platform database for shared objects and utilities';
+
+DROP SCHEMA IF EXISTS PLT.PUBLIC;
+
+GRANT CREATE SCHEMA ON DATABASE PLT TO ROLE PLT_ADMIN;
+GRANT CREATE DATABASE ROLE ON DATABASE PLT TO ROLE PLT_ADMIN;
+```
+
+Let's create a schema in the platform database for governance, containing common objects that we'll provide as the platform administrator, or as a central enablement team.
+
+```sql
+-- Platform Database content ---------------------------------------------------
+USE ROLE PLT_ADMIN;
+
+CREATE SCHEMA IF NOT EXISTS PLT.GOVERNANCE
+  WITH MANAGED ACCESS
+  COMMENT = 'Platform governance objects including tags, masking and access policies, and common data metric functions';
+
+CREATE DATABASE ROLE IF NOT EXISTS PLT.GOVERNANCE_A
+  COMMENT = 'Apply and invoke access to platform governance objects';
+CREATE DATABASE ROLE IF NOT EXISTS PLT.GOVERNANCE_W
+  COMMENT = 'Create and manage platform governance objects';
+
+GRANT DATABASE ROLE PLT.GOVERNANCE_A TO DATABASE ROLE PLT.GOVERNANCE_W;
+
+GRANT USAGE, MONITOR ON SCHEMA PLT.GOVERNANCE TO DATABASE ROLE PLT.GOVERNANCE_A;
+
+-- GOVERNANCE_A: apply and invoke governance objects
+GRANT APPLY ON FUTURE TAGS                   IN SCHEMA PLT.GOVERNANCE TO DATABASE ROLE PLT.GOVERNANCE_A;
+GRANT APPLY ON FUTURE MASKING POLICIES       IN SCHEMA PLT.GOVERNANCE TO DATABASE ROLE PLT.GOVERNANCE_A;
+GRANT APPLY ON FUTURE ROW ACCESS POLICIES    IN SCHEMA PLT.GOVERNANCE TO DATABASE ROLE PLT.GOVERNANCE_A;
+GRANT APPLY ON FUTURE AGGREGATION POLICIES   IN SCHEMA PLT.GOVERNANCE TO DATABASE ROLE PLT.GOVERNANCE_A;
+GRANT APPLY ON FUTURE PROJECTION POLICIES    IN SCHEMA PLT.GOVERNANCE TO DATABASE ROLE PLT.GOVERNANCE_A;
+GRANT USAGE ON FUTURE DATA METRIC FUNCTIONS  IN SCHEMA PLT.GOVERNANCE TO DATABASE ROLE PLT.GOVERNANCE_A;
+
+-- GOVERNANCE_W: create and manage governance objects
+GRANT CREATE TAG                   ON SCHEMA PLT.GOVERNANCE TO DATABASE ROLE PLT.GOVERNANCE_W;
+GRANT CREATE MASKING POLICY        ON SCHEMA PLT.GOVERNANCE TO DATABASE ROLE PLT.GOVERNANCE_W;
+GRANT CREATE ROW ACCESS POLICY     ON SCHEMA PLT.GOVERNANCE TO DATABASE ROLE PLT.GOVERNANCE_W;
+GRANT CREATE AGGREGATION POLICY    ON SCHEMA PLT.GOVERNANCE TO DATABASE ROLE PLT.GOVERNANCE_W;
+GRANT CREATE PROJECTION POLICY     ON SCHEMA PLT.GOVERNANCE TO DATABASE ROLE PLT.GOVERNANCE_W;
+GRANT CREATE DATA METRIC FUNCTION  ON SCHEMA PLT.GOVERNANCE TO DATABASE ROLE PLT.GOVERNANCE_W;
+
+CREATE TAG IF NOT EXISTS PLT.GOVERNANCE.INFO_CLASSIFICATION
+  ALLOWED_VALUES 'Public', 'Internal', 'Restricted', 'Highly Restricted'
+  COMMENT = 'Information classification level, representing the highest level for the data object or column';
+
+CREATE TAG IF NOT EXISTS PLT.GOVERNANCE.DV_ZONE
+  ALLOWED_VALUES 'Landing Zone', 'Enterprise Memory Zone', 'Information Delivery Zone'
+  COMMENT = 'Data Vault 2.1 architectural zone';
+```
+
+> A note about **Tags, Policies, Data Metric Functions**
+>
+> This guide could not possibly cover the vast array what is possible using the powerful governance features available. [Cortex Code include built-in data governance skills](https://docs.snowflake.com/en/user-guide/governance-skills) designed to help you understand, protect, and monitor the data in your Snowflake account.
+>
+> Snowflake provides a set of built-in Tags — such as `SNOWFLAKE.CORE.SEMANTIC_CATEGORY` and `SNOWFLAKE.CORE.PRIVACY_CATEGORY` — that cover generic sensitive data classification out of the box. Custom Tags stored in `PLT.GOVERNANCE` should encode your organization's specific or Data Vault-specific tags that have no system equivalent. The `INFO_CLASSIFICATION` and `DV_ZONE` tags are examples. You can map user-defined tags to system-defined classification tags. For example, you can set up a tag map so that every time the system tag SNOWFLAKE.CORE.SEMANTIC_CATEGORY = 'NAME' is applied to a column, the custom tag INFO_CLASSIFICATION = 'Highly Restricted' is also applied. See [Sensitive Data Classification](https://docs.snowflake.com/en/user-guide/classify-intro).
+>
+> Snowflake's Data Protection Policies, such as [Tag-Based Masking Policies](https://docs.snowflake.com/en/user-guide/tag-based-masking-policies), can be used to mask or filter information classified as restricted, making the detail available only to certain roles.
+>
+> Snowflake also provides a set of built-in Data Metric Functions (DMFs) — such as `SNOWFLAKE.CORE.NULL_COUNT`, `SNOWFLAKE.CORE.DUPLICATE_COUNT`, and `SNOWFLAKE.CORE.FRESHNESS` — that cover generic quality checks out of the box. Custom DMFs stored in `PLT.GOVERNANCE` should encode Data Vault-specific quality standards that have no system equivalent, such as LDTS staleness, future LDTS values, Hask Key and Business Key duplicates, Ghost Records, and more.
+>
+> Note that while common *definitions* live in `PLT.GOVERNANCE`, the *attachment* to individual objects happens when those are created. The `GOVERNANCE_A` role's `USAGE` grant enables that attachment step.
+
+Let's create a schema in the platform database for administration tools, containing helpers we'll use as the platform administrator, reducing repetition and helping achieve consistency later in our deployment.
+
+```sql
+CREATE SCHEMA IF NOT EXISTS PLT.ADMIN_TOOLS
+  WITH MANAGED ACCESS
+  COMMENT = 'Common platform administration tools and utilities';
+
+CREATE OR REPLACE PROCEDURE PLT.ADMIN_TOOLS.CREATE_SCHEMA_AND_ROLES(
+    DATABASE_NAME   VARCHAR,
+    SCHEMA_NAME     VARCHAR,
+    SCHEMA_SUBJECT  VARCHAR,
+    IS_TRANSIENT    BOOLEAN DEFAULT FALSE
+)
+RETURNS VARCHAR
+LANGUAGE SQL
+EXECUTE AS CALLER
+AS
+$$
+DECLARE
+    v_db        VARCHAR DEFAULT UPPER(DATABASE_NAME);
+    v_transient VARCHAR DEFAULT IFF(IS_TRANSIENT, 'TRANSIENT ', '');
+    v_schema    VARCHAR DEFAULT UPPER(SCHEMA_NAME);
+    v_subject   VARCHAR DEFAULT SCHEMA_SUBJECT;
+BEGIN
+
+    -- Ensure database-wide roles exist
+    EXECUTE IMMEDIATE 'CREATE DATABASE ROLE IF NOT EXISTS ' || v_db || '.DB_R'
+        || ' COMMENT = ''Database-wide read access''';
+    EXECUTE IMMEDIATE 'CREATE DATABASE ROLE IF NOT EXISTS ' || v_db || '.DB_W'
+        || ' COMMENT = ''Database-wide write and create access''';
+
+    -- Create the managed access schema
+    EXECUTE IMMEDIATE
+        'CREATE ' || v_transient || 'SCHEMA ' || v_db || '.' || v_schema
+        || ' WITH MANAGED ACCESS'
+        || ' COMMENT = ''' || REPLACE(v_subject, '''', '''''') || '''';
+
+    -- Create schema-specific database roles
+    EXECUTE IMMEDIATE
+        'CREATE DATABASE ROLE ' || v_db || '.' || v_schema || '_R'
+        || ' COMMENT = ''Read access to ' || REPLACE(v_subject, '''', '''''') || ' (' || v_schema || ')''';
+    EXECUTE IMMEDIATE
+        'CREATE DATABASE ROLE ' || v_db || '.' || v_schema || '_W'
+        || ' COMMENT = ''Write and create access to ' || REPLACE(v_subject, '''', '''''') || ' (' || v_schema || ')''';
+
+    -- _R granted to DB_R and to _W (so _W inherits _R)
+    EXECUTE IMMEDIATE 'GRANT DATABASE ROLE ' || v_db || '.' || v_schema || '_R TO DATABASE ROLE ' || v_db || '.DB_R';
+    EXECUTE IMMEDIATE 'GRANT DATABASE ROLE ' || v_db || '.' || v_schema || '_R TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    -- _W granted to DB_W
+    EXECUTE IMMEDIATE 'GRANT DATABASE ROLE ' || v_db || '.' || v_schema || '_W TO DATABASE ROLE ' || v_db || '.DB_W';
+
+    -- Grant USAGE and MONITOR on database and schema to _R
+    EXECUTE IMMEDIATE 'GRANT USAGE, MONITOR ON DATABASE ' || v_db
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_R';
+    EXECUTE IMMEDIATE 'GRANT USAGE, MONITOR ON SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_R';
+
+    RETURN 'SUCCESS: Created schema ' || v_db || '.' || v_schema
+        || ' with roles ' || v_schema || '_R, ' || v_schema || '_W.';
+END;
+$$;
+
+CREATE OR REPLACE PROCEDURE PLT.ADMIN_TOOLS.CREATE_SOURCE_SCHEMA_AND_ROLES(
+    DATABASE_NAME   VARCHAR,
+    SCHEMA_NAME     VARCHAR,
+    SOURCE_SYSTEM   VARCHAR
+)
+RETURNS VARCHAR
+LANGUAGE SQL
+EXECUTE AS CALLER
+AS
+$$
+DECLARE
+    v_db     VARCHAR DEFAULT UPPER(DATABASE_NAME);
+    v_schema VARCHAR DEFAULT UPPER(SCHEMA_NAME);
+BEGIN
+
+    CALL PLT.ADMIN_TOOLS.CREATE_SCHEMA_AND_ROLES(:v_db, :v_schema, :SOURCE_SYSTEM);
+
+    -- _R: read-only access to landing zone objects
+    EXECUTE IMMEDIATE 'GRANT SELECT ON FUTURE TABLES IN SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_R';
+
+    -- _W: insert-only write access (LZ data is immutable after initial load)
+    EXECUTE IMMEDIATE 'GRANT INSERT ON FUTURE TABLES IN SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    EXECUTE IMMEDIATE 'GRANT USAGE, READ, WRITE ON FUTURE STAGES IN SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    EXECUTE IMMEDIATE 'GRANT MONITOR, OPERATE ON FUTURE PIPES IN SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    EXECUTE IMMEDIATE 'GRANT CREATE PIPE ON SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    EXECUTE IMMEDIATE 'GRANT CREATE TABLE ON SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+
+    RETURN 'SUCCESS: Created schema ' || v_db || '.' || v_schema
+        || ' for source system ' || SOURCE_SYSTEM || ' with future grants applied.';
+
+END;
+$$;
+
+CREATE OR REPLACE PROCEDURE PLT.ADMIN_TOOLS.CREATE_DOMAIN_SCHEMA_AND_ROLES(
+    DATABASE_NAME   VARCHAR,
+    SCHEMA_NAME     VARCHAR,
+    DOMAIN          VARCHAR
+)
+RETURNS VARCHAR
+LANGUAGE SQL
+EXECUTE AS CALLER
+AS
+$$
+DECLARE
+    v_db     VARCHAR DEFAULT UPPER(DATABASE_NAME);
+    v_schema VARCHAR DEFAULT UPPER(SCHEMA_NAME);
+BEGIN
+
+    CALL PLT.ADMIN_TOOLS.CREATE_SCHEMA_AND_ROLES(:v_db, :v_schema, :DOMAIN);
+
+    -- _R: read access to domain schema objects
+    EXECUTE IMMEDIATE 'GRANT SELECT ON FUTURE TABLES IN SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_R';
+    EXECUTE IMMEDIATE 'GRANT SELECT ON FUTURE VIEWS IN SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_R';
+    EXECUTE IMMEDIATE 'GRANT SELECT ON FUTURE DYNAMIC TABLES IN SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_R';
+    EXECUTE IMMEDIATE 'GRANT USAGE ON FUTURE FUNCTIONS IN SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_R';
+    EXECUTE IMMEDIATE 'GRANT USAGE ON FUTURE PROCEDURES IN SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_R';
+
+    -- _W: additional write access to domain schema objects
+    EXECUTE IMMEDIATE 'GRANT INSERT, UPDATE, DELETE, TRUNCATE ON FUTURE TABLES IN SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    EXECUTE IMMEDIATE 'GRANT SELECT ON FUTURE STREAMS IN SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    EXECUTE IMMEDIATE 'GRANT MONITOR, OPERATE ON FUTURE TASKS IN SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    EXECUTE IMMEDIATE 'GRANT MONITOR, OPERATE ON FUTURE DYNAMIC TABLES IN SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+
+    -- _W: schema-level CREATE privileges
+    EXECUTE IMMEDIATE 'GRANT CREATE TABLE ON SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    EXECUTE IMMEDIATE 'GRANT CREATE VIEW ON SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    EXECUTE IMMEDIATE 'GRANT CREATE DYNAMIC TABLE ON SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    EXECUTE IMMEDIATE 'GRANT CREATE FUNCTION ON SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    EXECUTE IMMEDIATE 'GRANT CREATE PROCEDURE ON SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    EXECUTE IMMEDIATE 'GRANT CREATE STREAM ON SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    EXECUTE IMMEDIATE 'GRANT CREATE TASK ON SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    EXECUTE IMMEDIATE 'GRANT CREATE DATA METRIC FUNCTION ON SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    EXECUTE IMMEDIATE 'GRANT CREATE MASKING POLICY ON SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    EXECUTE IMMEDIATE 'GRANT CREATE ROW ACCESS POLICY ON SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    EXECUTE IMMEDIATE 'GRANT CREATE TAG ON SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    EXECUTE IMMEDIATE 'GRANT CREATE STAGE ON SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+
+    RETURN 'SUCCESS: Created schema ' || v_db || '.' || v_schema
+        || ' for domain ' || DOMAIN || ' with future grants applied.';
+
+END;
+$$;
+```
+
+Let's create a database that will serve as our Landing Zone, as well as a role and warehouse designed for ingesting data. You may note that this serves as a development environment example. Objects developed here might later be promoted to a TST_LZ and then a main LZ, for testing and production use. Ingestion of data is typically performed by an automated Service User. In the event multiple Service Users will be used to ingest data using multiple solutions, you may wish to create multiple ingestion roles. 
+
+```sql
+-- Development LZ Ingestion Role -----------------------------------------------
+USE ROLE SECURITYADMIN;
+
+CREATE ROLE IF NOT EXISTS DEV_LZ_INGEST
+  COMMENT = 'Ingestion role for the development landing zone';
+
+GRANT ROLE DEV_LZ_INGEST TO ROLE SYSADMIN;
+
+-- Development LZ Ingestion Warehouse ------------------------------------------
+USE ROLE SYSADMIN;
+
+CREATE WAREHOUSE IF NOT EXISTS DEV_INGEST_WH
+  WAREHOUSE_SIZE = 'XSMALL'
+  AUTO_SUSPEND = 60
+  AUTO_RESUME = TRUE
+  INITIALLY_SUSPENDED = TRUE
+  COMMENT = 'Warehouse for data ingestion workloads';
+
+GRANT USAGE ON WAREHOUSE DEV_INGEST_WH TO ROLE DEV_LZ_INGEST;
+GRANT OPERATE ON WAREHOUSE DEV_INGEST_WH TO ROLE DEV_LZ_INGEST;
+
+-- Development LZ Ingestion Warehouse ------------------------------------------
+CREATE DATABASE IF NOT EXISTS DEV_LZ
+  COMMENT = 'Development landing zone for raw data ingestion';
+
+DROP SCHEMA IF EXISTS DEV_LZ.PUBLIC;
+
+GRANT CREATE SCHEMA ON DATABASE DEV_LZ TO ROLE PLT_ADMIN;
+GRANT CREATE DATABASE ROLE ON DATABASE DEV_LZ TO ROLE PLT_ADMIN;
+```
+
+You may be wondering, why did we not grant any database-specific privileges to the ingestion role, but to the platform administrator role? We'll cover that soon.
+
+Now, let's create two more databases. The first will serve as our Data Vault, holding staging, raw vault, and business vault objects. The second will serve as our analyst-facing interface to the Information Delivery Zone. We'll also create a warehouse designed for transforming data.
+
+```sql
+-- Data Transformation Warehouse -----------------------------------------------
+USE ROLE SYSADMIN;
+
+CREATE WAREHOUSE IF NOT EXISTS DEV_XFORM_WH
+  WAREHOUSE_SIZE = 'XSMALL'
+  AUTO_SUSPEND = 60
+  AUTO_RESUME = TRUE
+  INITIALLY_SUSPENDED = TRUE
+  COMMENT = 'Warehouse for data transformation workloads';
+
+-- Data Vault Database ---------------------------------------------------------
+CREATE DATABASE IF NOT EXISTS DEV_DV
+  COMMENT = 'Enterprise memory of domain-oriented data vault models';
+
+DROP SCHEMA IF EXISTS DEV_DV.PUBLIC;
+
+GRANT CREATE SCHEMA ON DATABASE DEV_DV TO ROLE PLT_ADMIN;
+GRANT CREATE DATABASE ROLE ON DATABASE DEV_DV TO ROLE PLT_ADMIN;
+
+-- Data Warehouse Database -----------------------------------------------------
+CREATE DATABASE IF NOT EXISTS DEV_DW
+  COMMENT = 'Information delivery of domain-oriented models';
+
+DROP SCHEMA IF EXISTS DEV_DW.PUBLIC;
+
+GRANT CREATE SCHEMA ON DATABASE DEV_DW TO ROLE PLT_ADMIN;
+GRANT CREATE DATABASE ROLE ON DATABASE DEV_DW TO ROLE PLT_ADMIN;
+```
+
+You may be wondering, why did we not create a role for transforming data in the data vault? The data models in the Landing Zone will be system-oriented. The Landing Zone is where data is ingested and kept as close as possible to its original state, as established by the source systems it came from. The data models in the Enterprise Memory Zone will be sparsely-built, built only with a business reason to do so, in the language of our business, and integrated by business key. The data models in the Information Delivery Zone have the same characteristics.
+
+<!-- ------------------------ -->
+## Business Architecture, Domains and Ontologies
+
+Architectural frameworks commonly define dimensions of both context and level of deail. Example levels of architectural context are Business, Information, Application, and System. Example levels of architectural detail are Conceptual (lowest level of detail), Logical, Physical and Implementation (the highest level of detail). It is critical to start with Business Architecture, leveraging that to inform the Information (data) Architecture, not with System (technology). It is also critical to start not with implementation (coding), but with the conceptual design. Yes, Snowflake Guides (like this one) walk through examples of code that can be directly executed on Snowflake, but let's take a moment to think about how we might have formulated these examples.
+
+Business architecture can be organized conceptually into a **hierarchy of domains**. Domains are not teams of people (but there is a connecction). Eric Evans, in the book Domain Driven Design, defines a **domain** as, "a sphere of knowledge, influence, or activity." It is important to recognize that, assuming your organization has been performing business activities regularly, these domains already exist. They simply need to be formally recognized. These domains can be diagramed in a hierarchy, with domains potentially broken into sub-domains (and potentially more sub-domains under those). The business activities in these domains **originate data** as valuable assets, not waste byproducts.
+
+Additionally, a domain's business activities can rarely function successfully without using data originating from other domains as input. For example, the **Finance** domain's activity of accounting for revenue recognition in the prior quarter depends on invoicing data associated with fulfilled orders, that invoice data originating from activities in the **Customer Service** domain. Before being invoiced, those orders were fulfilled by activities in the **Manufacturing & Delivery** domain. Those orders originated with activities in the **Sales & Marketing** domain. Those placed but unfulfilled orders, or possibly just a Sales & Marketing expectation of future orders, might inform a Finance domain's Revenue Forecast. The people performing all those activities -- whether they work in the Sales & Marketing, Customer Service, Manufacturing & Delivery, or Finance teams -- are all hired, tracked and managed through activities in the **Workforce** domain. And those workers were likely given an email address through activities the **IT Delivery** domain. The complex web of connections is difficult (if not impossible) to diagram or comprehend in total, but within the perspective of a single domain, understanding more more easily achieved.
+
+The business processes, as performed in an organization, along with business keys (how the people performing the activities identify things), units of work that connect business keys, descriptive information, what technology systems are used, and input/output connections to other domains, can be formally described and documented in **ontologies**. These ontologies can be captured in simple text documents, or in a knowledge graph. And because each domain in the hierarchy has a web of connections to other domains, not just hierarchical relationships, athe domain hierarchy is actually a **domain taxonomy**. When getting started, it's important to not attempt a "boil the ocean" approach, but rather limit scope to a prioritized set of specific business objectives. However, it's important to get the portion that is formally documented right -- utilizing the domain expertise of those performing these business processes, gaining the formal approval of those who already have dominion over the given domain(s). You don't want to documented ontology of the Finance domain that the CFO does not recognize or approve of. Every domain, when formally documented, should have an obvious authority figure, already having dominion over the activities, processes, and business vocabulary used within that domain.
+
+As an example, we'll consider the following diagram of a simple domain hierarchy.
+
+
+
+With Snowflake, schema objects -- which include tables, views, stages, files formats, pipes, streams, UDFs, stored procedures, and more -- always exist within a schema. While access control is possible at the schema object level, assigning privileges on each individual object, doing so quickly becomes tedious and costly to maintain. When objects with common access control objectives are grouped together into schemas, maintaining access controls becomes much easier. Governance of access controls (as well as many other things) is almost always domain-oriented. Thus, we'll use domain-oriented schemas to organize the objects in our Enterprise Memory Zone and beyond.
+
+
+<!-- ------------------------ -->
+## From Logical Business Architecture to Implemented Snowflake Objects
+
+
+
+<!-- ------------------------ -->
+## Conclusion And Resources
+
+At the end of your Snowflake Guide, always have a clear call to action (CTA). This CTA could be a link to the docs pages, links to videos on youtube, a GitHub repo link, etc. 
+
+If you want to learn more about Snowflake Guide formatting, checkout the official documentation here: [Snowflake Guide](#)
+
+### What You Learned
+- Basics of creating sections
+- adding formatting and code snippets
+- Adding images and videos with considerations to keep in mind
+
+### Related Resources
+- <link to github code repo>
+- <link to related documentation>
+
+### EXAMPLES:
+* **Logged Out experience with one click into product:** [Understanding Customer Reviews using Snowflake Cortex](https://www.snowflake.com/en/developers/guides/understanding-customer-reviews-using-snowflake-cortex/)
+* **Topic pages with multiple use cases below the Overview:** [Data Connectivity with Snowflake Openflow](https://www.snowflake.com/en/developers/guides/data-connectivity-with-snowflake-openflow/)
+* **Simple Hands-on Guide**: [Getting Started with Snowflake Intelligence](https://www.snowflake.com/en/developers/guides/getting-started-with-snowflake-intelligence/)
