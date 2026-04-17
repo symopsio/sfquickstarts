@@ -418,6 +418,8 @@ CREATE OR REPLACE DATABASE balloon_game_events
   );
 ```
 
+> **Note:** Any change to Lake Formation permissions or IAM trust after a link failure requires re-creating the CLD. After fixing the LF/IAM settings, re-run `CREATE OR REPLACE DATABASE … LINKED_CATALOG = (…)` and re-apply `GRANT USAGE ON INTEGRATION glue_rest_catalog_int TO ROLE <your_role>`. See *Privileges Lost After CLD Recreate* in Troubleshooting.
+
 Optional status checks:
 
 ```sql
@@ -456,6 +458,11 @@ LIMIT 10;
 ```
 
 #### Lake Formation Console Checks
+
+> **When to check:** Run these checks only if `SYSTEM$CATALOG_LINK_STATUS('balloon_game_events')` reports failures. A healthy link returns:
+> ```json
+> {"failureDetails":[],"executionState":"RUNNING","lastLinkAttemptStartTime":"..."}
+> ```
 
 If `task bronze:lakeformation-setup` ran successfully, skip this. Otherwise verify these four settings manually.
 
