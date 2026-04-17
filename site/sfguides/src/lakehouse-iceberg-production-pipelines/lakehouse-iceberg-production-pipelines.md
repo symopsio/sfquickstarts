@@ -884,7 +884,7 @@ DROP USER IF EXISTS duckdb_sa;
 DROP ROLE IF EXISTS duckdb_silver_reader;
 ```
 
-After any `CREATE OR REPLACE DATABASE … LINKED_CATALOG`, re-apply `GRANT USAGE ON INTEGRATION` and any other privileges your role needs.
+> See *Privileges Lost After CLD Recreate* in Troubleshooting if you recreate the CLD during teardown and re-setup.
 
 ### Bronze (AWS)
 
