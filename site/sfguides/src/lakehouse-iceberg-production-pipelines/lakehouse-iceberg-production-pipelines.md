@@ -494,17 +494,17 @@ Open **Lake Formation** → **Administration** → **Application integration set
 
 End-to-end Snowflake command sequence (assumes tools verified and bronze loaded):
 
-```bash
-task bronze:snowflake-summary
-task snowflake:create-glue-catalog-read-role
-# Return to Bronze chapter here and run: task bronze:lakeformation-setup
-task snowflake:generate-lab-sql
-snow sql --filename snowflake/lab/generated/01_catalog_integration.generated.sql
-task snowflake:describe-catalog-integration
-task snowflake:render-glue-catalog-trust
-task snowflake:apply-glue-catalog-trust-from-rendered
-snow sql --filename snowflake/lab/generated/02_cld_verify.generated.sql
-```
+| Command | What it does |
+|---------|-------------|
+| `task bronze:snowflake-summary` | Print bucket/DB/ARNs needed for Snowflake catalog SQL |
+| `task snowflake:create-glue-catalog-read-role` | Create SIGV4 IAM role; write ARN to `.aws-config/` |
+| *(return to Bronze)* `task bronze:lakeformation-setup` | Grant SIGV4 role access via Lake Formation |
+| `task snowflake:generate-lab-sql` | Generate `01_catalog_integration` and `02_cld_verify` SQL |
+| `snow sql --filename snowflake/lab/generated/01_catalog_integration.generated.sql` | Create the catalog integration in Snowflake |
+| `task snowflake:describe-catalog-integration` | Print trust fields (API_AWS_IAM_USER_ARN + external ID) |
+| `task snowflake:render-glue-catalog-trust` | Render trust JSON using those fields |
+| `task snowflake:apply-glue-catalog-trust-from-rendered` | Apply rendered trust to SIGV4 IAM role |
+| `snow sql --filename snowflake/lab/generated/02_cld_verify.generated.sql` | Create CLD and run discovery queries |
 
 <!-- ------------------------ -->
 ## Dynamic Iceberg Tables
