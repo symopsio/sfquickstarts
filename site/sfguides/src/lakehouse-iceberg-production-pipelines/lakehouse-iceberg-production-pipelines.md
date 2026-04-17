@@ -623,13 +623,7 @@ The `snowflake/sis/snowflake.yml` is the ground truth for deployment defaults. T
 
 ### Deploy the App
 
-Create the target schema if it does not exist:
-
-```sql
-CREATE SCHEMA IF NOT EXISTS balloon_silver.apps;
-```
-
-Deploy using the task wrapper (recommended — reads **LAB_USERNAME**, **SNOWFLAKE_APPS_SCHEMA**, **SNOWFLAKE_SILVER_DATABASE**, **SNOWFLAKE_SILVER_SCHEMA**, and **SNOWFLAKE_WAREHOUSE** from `.env`):
+`task snowflake:sis-deploy` creates the target schema, stage, and Streamlit object automatically. Deploy using the task wrapper (recommended — reads **LAB_USERNAME**, **SNOWFLAKE_APPS_SCHEMA**, **SNOWFLAKE_SILVER_DATABASE**, **SNOWFLAKE_SILVER_SCHEMA**, and **SNOWFLAKE_WAREHOUSE** from `.env`):
 
 ```bash
 task snowflake:sis-deploy -- --open
