@@ -119,10 +119,10 @@ After `uv sync`, use `uv run snow …` from the repo root, or add `.venv/bin` (m
 
 ### Verify Installation
 
-Sync Python dependencies:
+Run the one-time bootstrap to install Python deps and create `.env` from the template (if it does not exist yet):
 
 ```bash
-uv sync
+task setup
 ```
 
 Configure your AWS profile and run the prerequisite check. The check will report errors for any missing required binaries, provide warnings for recommended (but not required) tools, and use `aws sts get-caller-identity` to validate your AWS session. Address any missing tools or credential issues, then rerun the check until you see **All required tools are available.**
@@ -134,11 +134,7 @@ task check-tools
 
 ### Environment Inputs
 
-Copy `.env.example` to `.env` and fill in your values.
-
-```bash
-cp .env.example .env
-```
+`task setup` copies `.env.example` to `.env` on first run. Edit `.env` and fill in your values.
 
 The `.env.example` is organized by lab phase. Key sections and variables:
 
@@ -309,9 +305,9 @@ Open **S3 Tables** → **Table buckets** and confirm **BRONZE_S3TABLES_BUCKET_NA
 Use data source `AwsDataCatalog`, database **GLUE_DATABASE**, and table **balloon_game_events**. Do **not** select the `s3tables/<table-bucket>` federated catalog entry — that path is an empty shell until a separate writer commits metadata.
 
 <!-- ------------------------ -->
-## Snowflake CLD
+## Snowflake Catalong Linked Database(CLD)
 
-This chapter creates the Glue Iceberg REST catalog integration, tightens IAM trust, creates the catalog-linked database (CLD), and runs discovery and read queries against **balloon_game_events**.
+This chapter creates the Glue Iceberg REST catalog integration, tightens IAM trust, creates the catalog linked database (CLD), and runs discovery and read queries against **balloon_game_events**.
 
 **Before starting:**
 
@@ -391,7 +387,7 @@ Or run the SQL directly:
 DESC CATALOG INTEGRATION glue_rest_catalog_int;
 ```
 
-Note **GLUE_AWS_IAM_USER_ARN** and **GLUE_AWS_EXTERNAL_ID** from the output — these are needed to tighten the trust policy on the SIGV4 IAM role.
+Note **API_AWS_IAM_USER_ARN** and **API_AWS_EXTERNAL_ID** from the output — these are needed to tighten the trust policy on the SIGV4 IAM role.
 
 #### Apply IAM Trust
 
@@ -511,7 +507,7 @@ snow sql --filename snowflake/lab/generated/02_cld_verify.generated.sql
 <!-- ------------------------ -->
 ## Dynamic Iceberg Tables
 
-With bronze readable through the CLD, add Snowflake-managed [Dynamic Iceberg Tables](https://docs.snowflake.com/en/user-guide/dynamic-tables-create-iceberg) that write silver Iceberg files to storage you control on a declared **TARGET_LAG**. Five aggregation tables refresh automatically and remain readable by any Iceberg-compatible engine.
+With bronze readable through the CLD, add [Dynamic Iceberg Tables](https://docs.snowflake.com/en/user-guide/dynamic-tables-create-iceberg) that write silver Iceberg data. It uses [Snowflake Managed Storage](https://docs.snowflake.com/en/user-guide/tables-iceberg-internal-storage) for Iceberg. The sliver pipeline frequence is controlled on a declared **TARGET_LAG**. Five aggregation tables refresh automatically and remain readable by any Iceberg-compatible engine.
 
 ### Five Silver Tables
 
@@ -713,7 +709,7 @@ ALTER STREAMLIT balloon_silver.apps.balloon_game_dashboard ADD LIVE VERSION FROM
 <!-- ------------------------ -->
 ## DuckDB Integration
 
-DuckDB can read Snowflake-managed Iceberg tables directly via the Horizon Iceberg REST Catalog (HIRC), giving cross-engine access to the same silver data without copying files or converting formats.
+DuckDB can read Snowflake-managed Iceberg tables directly via the [Horizon Iceberg REST Catalog (HIRC)](https://docs.snowflake.com/en/user-guide/tables-iceberg-access-using-external-query-engine-snowflake-horizon), giving cross-engine access to the same silver data without copying files or converting formats.
 
 > **Preview feature:** HIRC is in Public Preview. It works in all Snowflake public regions except government regions. No additional charges apply during preview.
 
@@ -1062,6 +1058,7 @@ Quick reference for all lab tasks. Run `task --list` from the repo root to see a
 
 | Task | Description |
 |------|-------------|
+| **setup** | Bootstrap: `uv sync` + copy `.env.example` → `.env` if missing |
 | **check-tools** | Verify lab CLIs on PATH and run *aws sts get-caller-identity* |
 | **default** | List all available tasks |
 | **dashboard-local** | Optional dev: run the Streamlit dashboard locally (not the lab outcome) |
