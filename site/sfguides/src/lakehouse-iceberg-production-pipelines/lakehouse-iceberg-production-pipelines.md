@@ -196,6 +196,14 @@ This is the first hands-on chapter. All downstream Snowflake steps assume the br
 
 ### Set Up and Load
 
+Preview any setup step without making changes (optional but recommended first):
+
+```bash
+task bronze:render-iam-dry-run
+task bronze:glue-setup-dry-run
+task bronze:s3tables-setup-dry-run
+```
+
 Render the IAM policy template (optional — run first if attaching a new IAM role):
 
 ```bash
@@ -226,14 +234,6 @@ Or run all three setup steps and load in one shot:
 task bronze:all
 ```
 
-Preview any task without making changes by running its dry-run variant:
-
-```bash
-task bronze:glue-setup-dry-run
-task bronze:s3tables-setup-dry-run
-task bronze:render-iam-dry-run
-```
-
 ### What Gets Created
 
 | Glue database | Table | Schema |
@@ -250,7 +250,15 @@ task bronze:snowflake-summary
 
 ### Lake Formation Setup
 
-After `task bronze:load` and after completing step 1 of the Snowflake CLD chapter (`task snowflake:create-glue-catalog-read-role`), configure Lake Formation for vended credentials:
+After `task bronze:load` and after completing step 1 of the Snowflake CLD chapter (`task snowflake:create-glue-catalog-read-role`), configure Lake Formation for vended credentials.
+
+Preview the Lake Formation setup without any AWS writes:
+
+```bash
+task bronze:lakeformation-setup-dry-run
+```
+
+Apply Lake Formation grants:
 
 ```bash
 task bronze:lakeformation-setup
@@ -259,12 +267,6 @@ task bronze:lakeformation-setup
 This step registers **BRONZE_BUCKET_NAME** with Lake Formation using a dedicated data-access IAM role (**HybridAccessEnabled=false**, **WithFederation=false**), clears the default Glue IAM-only table permissions on **GLUE_DATABASE**, and grants **SELECT** and **DESCRIBE** to your Snowflake SIGV4 role.
 
 **Keep the SIGV4 and LF data-access roles separate.** Using the same role causes credential vending errors — see the Troubleshooting chapter for error code **094120**.
-
-Preview the Lake Formation setup without any AWS writes:
-
-```bash
-task bronze:lakeformation-setup-dry-run
-```
 
 ### Verify in AWS Console
 
