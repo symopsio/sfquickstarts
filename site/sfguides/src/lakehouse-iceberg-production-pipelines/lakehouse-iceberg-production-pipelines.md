@@ -170,12 +170,6 @@ S3TABLES_NAMESPACE=balloon_pops
 # SNOWFLAKE_WAREHOUSE=COMPUTE_WH
 
 # =============================================================
-# Phase 2 — Silver external volume (task dt:extvol-*)
-# =============================================================
-# SILVER_EXTVOLUME_BUCKET_SLUG=myname-balloon-silver
-# SNOWFLAKE_ICEBERG_EXTERNAL_VOLUME=   <- fill in after task dt:extvol-create
-
-# =============================================================
 # Phase 2 — Dynamic Iceberg Tables (task dt:generate-sql)
 # =============================================================
 # SNOWFLAKE_SILVER_DATABASE=balloon_silver
@@ -192,7 +186,6 @@ S3TABLES_NAMESPACE=balloon_pops
 | **BRONZE_BUCKET_NAME** | 1 | derived | S3 warehouse bucket; *iceberg/* becomes the Glue warehouse URI |
 | **SNOWFLAKE_DEFAULT_CONNECTION_NAME** | 2 | snow default | Override when using a non-default *snow* connection |
 | **SNOWFLAKE_ROLE** | 2 | ACCOUNTADMIN | Role for catalog integration and CLD commands |
-| **SNOWFLAKE_ICEBERG_EXTERNAL_VOLUME** | 2 | set after extvol-create | External volume for silver DTs |
 | **SNOWFLAKE_SILVER_DATABASE** | 2 | balloon_silver | Native Snowflake database for DT objects |
 | **SNOWFLAKE_SILVER_SCHEMA** | 2 | silver | Schema for silver Dynamic Iceberg Tables |
 
@@ -529,15 +522,13 @@ Use the **Detailed Path** below for step-by-step shell commands.
 
 #### Configure Environment
 
-Set these variables in `.env` before creating the external volume and generating SQL:
+Set these variables in `.env` before generating SQL:
 
 | Variable | Default | Notes |
 |----------|---------|-------|
-| **SILVER_EXTVOLUME_BUCKET_SLUG** | none | Short fragment for sfutils-extvolumes *--bucket*. Unset + **LAB_USERNAME** → resolver uses *balloon-silver* + workshop prefix |
 | **SNOWFLAKE_SILVER_DATABASE** | *balloon_silver* | Native Snowflake database for DT objects |
 | **SNOWFLAKE_SILVER_SCHEMA** | *silver* | Schema for all silver DTs |
 | **SNOWFLAKE_WAREHOUSE** | *COMPUTE_WH* | Warehouse for DT refresh compute |
-| **SNOWFLAKE_ICEBERG_EXTERNAL_VOLUME** | set after extvol-create | Required by *task dt:generate-sql* |
 
 Print current environment hints:
 
@@ -545,41 +536,7 @@ Print current environment hints:
 task snowflake:print-env-hints
 ```
 
-#### Create Silver External Volume
-
-`CREATE DYNAMIC ICEBERG TABLE` requires an `EXTERNAL_VOLUME` — Snowflake writes silver Iceberg files to S3 storage behind that volume. Create a dedicated silver volume before generating DT SQL.
-
-Preview the operation without any AWS or Snowflake changes:
-
-```bash
-task dt:extvol-create-dry-run
-```
-
-Create the volume (workshop with **LAB_USERNAME** set — resolver uses *balloon-silver* + workshop slug prefix):
-
-```bash
-task dt:extvol-create -- --output json
-```
-
-Create the volume (solo or custom slug):
-
-```bash
-SILVER_EXTVOLUME_BUCKET_SLUG=myname-balloon-silver task dt:extvol-create -- --output json
-```
-
-> **After creation:** Copy the volume name from the output and add it to `.env`:
->
-> ```
-> SNOWFLAKE_ICEBERG_EXTERNAL_VOLUME=<volume-name-from-output>
-> ```
->
-> All subsequent `task dt:*` commands and `task dt:generate-sql` read this variable automatically.
-
-Verify connectivity for the new volume:
-
-```bash
-task dt:extvol-verify
-```
+> Dynamic Iceberg Tables use Snowflake Managed Storage — no external volume setup is required.
 
 #### Generate and Apply DT SQL
 
@@ -589,7 +546,7 @@ Generate the silver DT SQL from your env and `.aws-config/` artifacts:
 task dt:generate-sql
 ```
 
-This writes `snowflake/lab/generated/03_dt_pipelines.generated.sql`. If **SNOWFLAKE_ICEBERG_EXTERNAL_VOLUME** is unset, the generator emits `REPLACE_ME_ICEBERG_EXTERNAL_VOLUME` and warns to stderr — set the variable and regenerate before running `snow sql`.
+This writes `snowflake/lab/generated/03_dt_pipelines.generated.sql`.
 
 Apply the generated SQL:
 
@@ -919,22 +876,6 @@ DROP ROLE IF EXISTS duckdb_silver_reader;
 ```
 
 After any `CREATE OR REPLACE DATABASE … LINKED_CATALOG`, re-apply `GRANT USAGE ON INTEGRATION` and any other privileges your role needs.
-
-### Silver External Volume
-
-Preview the teardown without making changes:
-
-```bash
-task dt:extvol-delete -- --dry-run
-```
-
-Delete the external volume, IAM role, and IAM policy:
-
-```bash
-task dt:extvol-delete -- --yes
-```
-
-Add `--delete-bucket` to also remove the S3 bucket. Add `--force` if the bucket is non-empty.
 
 ### Bronze (AWS)
 
