@@ -645,6 +645,12 @@ uv run sis-deploy show-config
 
 ### Open and Share
 
+Print the deployed app URL:
+
+```bash
+task snowflake:url
+```
+
 Open the deployed app in Snowsight. Grant access to analyst roles:
 
 ```sql
@@ -1044,6 +1050,7 @@ Quick reference for all lab tasks. Run `task --list` from the repo root to see a
 | **snowflake:generate-lab-sql-all** | Write all three generated SQL files in one shot |
 | **snowflake:print-env-hints** | Print Snowflake CLD env defaults and SIGV4 hints |
 | **snowflake:sis-deploy** | Deploy the Streamlit in Snowflake app to *balloon_silver.apps* |
+| **snowflake:url** | Print deployed Streamlit in Snowflake app URL |
 | **snowflake:pat-create** | Create PAT for duckdb_sa and store in OS keychain |
 | **snowflake:pat-print** | Print PAT value from keychain to stdout |
 | **snowflake:pat-revoke** | Revoke and delete PAT from keychain and Snowflake |
