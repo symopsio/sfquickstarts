@@ -727,77 +727,89 @@ https://<account>.snowflakecomputing.com/polaris/api/catalog
 
 DuckDB authenticates using a Programmatic Access Token (PAT). The PAT is exchanged for temporary credentials via the OAuth2 client credentials flow, scoped to a Snowflake role. DuckDB then reads Iceberg metadata and S3 data files directly — Snowflake does not proxy the data.
 
-### Prerequisites
+Two HIRC-specific rules to keep in mind before you start:
 
-- Silver Dynamic Iceberg Tables created and refreshed at least once
-- Snowflake role with **SELECT** on the silver DTs
-- DuckDB available in the project Python environment — `uv sync` installs it automatically
-- A PAT scoped to a service account role (steps below)
+- **Warehouse name is case-sensitive** — the catalog name in `ATTACH` must be **UPPERCASE** (e.g. `'BALLOON_SILVER'`). Lowercase returns HTTP 404.
+- **`GRANT ON ALL TABLES` skips Dynamic Iceberg Tables** — you must use `ON ALL DYNAMIC TABLES` and `ON FUTURE DYNAMIC TABLES`; the plain `TABLES` variant silently grants nothing.
 
-### Service Account Setup
+### Quick Start
 
-Create a dedicated role and user for DuckDB HIRC access, then grant SELECT on the silver DTs.
+The fastest path: set three env vars, run one task, open the notebook.
 
-Create the role (no hyphens — HIRC requires underscore-only role names):
+**1. Add to `.env`** (substitute your `LAB_USERNAME` prefix — for example `ksampath`):
 
-```sql
-CREATE ROLE IF NOT EXISTS duckdb_silver_reader;
+```bash
+SNOWFLAKE_ACCOUNT_URL=https://<org>-<account>.snowflakecomputing.com
+SA_USER=${LAB_USERNAME}_duckdb_sa          # e.g. ksampath_duckdb_sa
+SA_ROLE=${LAB_USERNAME}_duckdb_silver_reader
+SNOWFLAKE_SILVER_DATABASE=${LAB_USERNAME}_balloon_silver
 ```
 
-Grant access to silver DTs:
-
-```sql
-GRANT USAGE ON DATABASE balloon_silver TO ROLE duckdb_silver_reader;
-GRANT USAGE ON SCHEMA balloon_silver.silver TO ROLE duckdb_silver_reader;
-GRANT SELECT ON ALL TABLES IN SCHEMA balloon_silver.silver TO ROLE duckdb_silver_reader;
-GRANT SELECT ON FUTURE TABLES IN SCHEMA balloon_silver.silver TO ROLE duckdb_silver_reader;
-```
-
-Create the service account user:
-
-```sql
-CREATE USER IF NOT EXISTS duckdb_sa
-  DEFAULT_ROLE = duckdb_silver_reader
-  DEFAULT_WAREHOUSE = COMPUTE_WH
-  COMMENT = 'DuckDB HIRC service account for balloon silver';
-GRANT ROLE duckdb_silver_reader TO USER duckdb_sa;
-```
-
-### Generate a PAT
-
-Use `sfutils-pat` to generate a Programmatic Access Token for **duckdb_sa**, store it in your OS keychain, and copy the value to `.env`.
-
-**1.** Create the PAT and store it in the OS keychain:
+**2. Create the service account, role, and PAT** (run from the repo root):
 
 ```bash
 task snowflake:pat-create
 ```
 
-**2.** Print the PAT value from the keychain to your console:
+This creates the role, user, and a PAT scoped to that role, then stores the PAT in your OS keyring. No further steps needed for auth.
 
-```bash
-task snowflake:pat-print
+**3. Grant Iceberg access** (run as `ACCOUNTADMIN` — replace `balloon_silver` with your `SNOWFLAKE_SILVER_DATABASE`):
+
+> **Critical:**
+>
+> `GRANT SELECT ON ALL TABLES` silently skips Dynamic Iceberg Tables. Use `ON ALL DYNAMIC TABLES` and `ON FUTURE DYNAMIC TABLES`.
+>
+> ```sql
+>
+> GRANT USAGE ON DATABASE balloon_silver TO ROLE duckdb_silver_reader;
+> GRANT USAGE ON SCHEMA balloon_silver.silver TO ROLE duckdb_silver_reader;
+> GRANT SELECT ON ALL DYNAMIC TABLES IN SCHEMA balloon_silver.silver TO ROLE duckdb_silver_reader;
+> GRANT SELECT ON FUTURE DYNAMIC TABLES IN SCHEMA balloon_silver.silver TO ROLE duckdb_silver_reader;
+> ```
+
+**4. Open the notebook:**
+
+[duckdb_lab_guide.ipynb](https://github.com/Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines/blob/main/notebooks/duckdb_lab_guide.ipynb) — loads the PAT from the OS keyring automatically, installs the DuckDB Iceberg extension, attaches the silver database via HIRC, and queries all five silver DTs.
+
+### Detailed Walkthrough
+
+This section explains each step in the Quick Start and shows the raw DuckDB SQL if you prefer to run it outside the notebook.
+
+#### Prerequisites
+
+- Silver Dynamic Iceberg Tables created and refreshed at least once
+- Snowflake role with `CREATE ROLE` / `CREATE USER` privileges for service account setup
+- DuckDB available in the project Python environment — `uv sync` installs it automatically
+
+#### What `task snowflake:pat-create` does
+
+`task snowflake:pat-create` calls `sfutils-pat create --user SA_USER --role SA_ROLE --db SNOWFLAKE_SILVER_DATABASE`, which:
+
+1. Creates the role `SA_ROLE` if it does not exist (no hyphens — HIRC requires underscore-only role names)
+2. Creates the user `SA_USER` with `DEFAULT_ROLE = SA_ROLE`
+3. Grants `SA_ROLE` to `SA_USER`
+4. Creates a PAT scoped to `SA_ROLE` and stores it in the OS keyring under `HOST:ACCOUNT:USER:SFUTILS-PAT:PAT_NAME`
+
+The PAT never touches `.env` or any tracked file.
+
+> **Security:** For CI/CD environments, inject the PAT at runtime from a vault or secrets manager.
+
+#### Grant Iceberg access (manual SQL)
+
+The task creates the role and user but does not grant table access. Run this once as `ACCOUNTADMIN`:
+
+```sql
+CREATE ROLE IF NOT EXISTS duckdb_silver_reader;
+
+GRANT USAGE ON DATABASE balloon_silver TO ROLE duckdb_silver_reader;
+GRANT USAGE ON SCHEMA balloon_silver.silver TO ROLE duckdb_silver_reader;
+GRANT SELECT ON ALL DYNAMIC TABLES IN SCHEMA balloon_silver.silver TO ROLE duckdb_silver_reader;
+GRANT SELECT ON FUTURE DYNAMIC TABLES IN SCHEMA balloon_silver.silver TO ROLE duckdb_silver_reader;
 ```
 
-**3.** Copy the printed value into `.env` as `SNOWFLAKE_PASSWORD`:
+#### Connect from DuckDB
 
-```bash
-# DuckDB HIRC — add to .env
-SA_USER=duckdb_sa
-SA_ROLE=duckdb_silver_reader
-SNOWFLAKE_ACCOUNT_URL=https://<org>-<account>.snowflakecomputing.com
-SNOWFLAKE_PASSWORD=<paste-output-of-task-snowflake:pat-print>
-```
-
-> **Security:** Writing a PAT to `.env` on disk is a local-development convenience. `.env` is listed in `.gitignore` and must never be committed. The canonical copy lives in your OS keychain — the `.env` entry is a working copy for this session only. For shared or CI environments, inject `SNOWFLAKE_PASSWORD` at runtime from a vault or CI secrets manager.
-
-### Easy Path — Interactive Notebook
-
-Open [duckdb_lab_guide.ipynb](https://github.com/Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines/blob/main/notebooks/duckdb_lab_guide.ipynb) for a step-by-step walkthrough. The notebook loads the PAT from `.env`, installs the DuckDB Iceberg extension, attaches **balloon_silver** via HIRC, and queries all five silver DTs.
-
-### Key DuckDB SQL
-
-Install and load the Iceberg and HTTPFS extensions:
+Install and load the required extensions (once per DuckDB installation):
 
 ```sql
 INSTALL iceberg;
@@ -806,7 +818,7 @@ INSTALL httpfs;
 LOAD httpfs;
 ```
 
-Create a PAT-based Iceberg secret:
+Create the PAT-based Iceberg secret:
 
 ```sql
 CREATE SECRET iceberg_pat_secret (
@@ -819,10 +831,10 @@ CREATE SECRET iceberg_pat_secret (
 );
 ```
 
-Attach the **balloon_silver** database:
+Attach the silver database — warehouse name must be **UPPERCASE**:
 
 ```sql
-ATTACH 'balloon_silver' AS balloon_silver (
+ATTACH 'BALLOON_SILVER' AS balloon_silver (
   TYPE iceberg,
   SECRET iceberg_pat_secret,
   ENDPOINT 'https://<account>.snowflakecomputing.com/polaris/api/catalog',
@@ -830,10 +842,11 @@ ATTACH 'balloon_silver' AS balloon_silver (
 );
 ```
 
-Discover all tables:
+Discover tables — `SHOW ALL TABLES` returns empty for Iceberg REST catalogs; use `USE` first:
 
 ```sql
-SHOW ALL TABLES;
+USE balloon_silver.SILVER;
+SHOW TABLES;
 ```
 
 Query the player leaderboard:
@@ -845,11 +858,13 @@ ORDER BY total_score DESC NULLS LAST
 LIMIT 10;
 ```
 
-Detach when done:
+### Limitations
 
-```sql
-DETACH balloon_silver;
-```
+- External engines can query but cannot write to Iceberg tables via HIRC
+- Reads work on Iceberg v2 or earlier only
+- Tables with row access policies or masking policies are not accessible via HIRC
+- Only Snowflake-managed Iceberg tables are supported — not externally managed, Delta, or Parquet Direct tables
+- `SHOW ALL TABLES` and `information_schema` are unavailable for attached Iceberg REST catalogs in DuckDB — use `USE catalog.SCHEMA; SHOW TABLES`
 
 ### Case-Sensitive Identifiers
 
@@ -862,13 +877,6 @@ SELECT * FROM balloon_silver.silver.dt_player_leaderboard;
 -- Correct: uppercase matches Snowflake's internal representation
 SELECT * FROM balloon_silver.SILVER.DT_PLAYER_LEADERBOARD;
 ```
-
-### Limitations
-
-- External engines can query but cannot write to Iceberg tables via HIRC
-- Reads work on Iceberg v2 or earlier only
-- Tables with row access policies or masking policies are not accessible via HIRC
-- Only Snowflake-managed Iceberg tables are supported — not externally managed, Delta, or Parquet Direct tables
 
 <!-- ------------------------ -->
 ## Cleanup
