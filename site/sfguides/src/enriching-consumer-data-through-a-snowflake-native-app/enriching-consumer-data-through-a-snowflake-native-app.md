@@ -27,3 +27,11 @@ This solution helps a provider setup a native app that allows a consumer to push
 * This framework leverages External Access Functions to expose a Provider API to a consumer to enrich a table with the API response
 * The Python permissions API is used to provide no-code setup
 * A SIS app is provided to help provider configure metadata
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view quickstart](https://medium.com/snowflake/api-enrichment-framework-c5703a01463b)
+- [fork repo](https://github.com/Snowflake-Labs/emerging-solutions-toolbox/tree/main/sfguide-getting-started-with-api-enrichment-framework)
+- [Download reference architecture](https://www.snowflake.com/content/dam/snowflake-site/developers/2024/08/Enriching-consumer-data-through-a-Native-App.pdf)
+- [Explore emerging solutions toolbox](https://emerging-solutions-toolbox.streamlit.app/)

@@ -27,3 +27,10 @@ This solution architecture shows how to build an AI application that uses Amazon
 * The Streamlit app receives those prompts and accesses relevant data from Snowflake.
 * The app passes the prompts from the user and the Snowflake data to a Bedrock model endpoint using Snowpark External Access to generate a response.
 * The Streamlit app materializes the response back to the user.
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view quickstart](https://quickstarts.snowflake.com/guide/getting_started_with_bedrock_streamlit_and_snowflake/index.html?index=..%2F..index#0)
+- [fork repo](https://github.com/Snowflake-Labs/sfguide-getting-started-with-bedrock-streamlit-and-snowflake/tree/main)
+- [Download reference architecture](https://www.snowflake.com/content/dam/snowflake-site/developers/2024/04/AWS-Bedrock-and-Streamlit-Reference-Architecture.pdf)

@@ -35,3 +35,7 @@ Instead of building complex, manual pipelines to extract text, parse documents, 
 
 ![openflow connectors](assets/cdc-replication.png)
 
+<!-- ------------------------ -->
+## Get Started
+
+- [view documentation](https://docs.snowflake.com/en/user-guide/data-integration/openflow/about)

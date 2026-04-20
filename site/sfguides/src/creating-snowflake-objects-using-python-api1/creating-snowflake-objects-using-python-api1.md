@@ -527,3 +527,9 @@ git clone [email protected]:Snowflake-Labs/sfguide-data-engineering-pipelines-w
       ]
     }
 ```
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view notebook](https://www.snowflake.com/notebooks/?staticAppId=Creating_Snowflake_Object_using_Python_API)
+- [fork repo](https://github.com/Snowflake-Labs/snowflake-demo-notebooks/tree/main/Creating%20Snowflake%20Object%20using%20Python%20API)

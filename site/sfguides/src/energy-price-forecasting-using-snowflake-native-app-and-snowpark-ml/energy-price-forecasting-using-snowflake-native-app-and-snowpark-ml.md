@@ -29,3 +29,10 @@ This solution architecture shows how to forecast wholesale energy prices with Ye
 * Then we select the date range to be used for Training and Backtesting
 * Perform price and spike forecasting and view the performance results
 * Deploy the selected model, schedule the inference intervals and training
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view quickstart](https://medium.com/snowflake/nativeapp-and-snowflake-series-how-to-build-an-xgboost-forecasting-app-86a6860b8318)
+- [fork repo](https://github.com/Snowflake-Labs/sf-samples/tree/main/samples/energy-price-forecasting-native-app)
+- [Download reference architecture](https://www.snowflake.com/content/dam/snowflake-site/developers/2024/01/Wholesale-Energy-Price-Forecasting.pdf)
