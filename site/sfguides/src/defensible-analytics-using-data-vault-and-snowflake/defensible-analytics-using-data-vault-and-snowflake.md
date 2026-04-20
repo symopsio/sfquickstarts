@@ -172,6 +172,8 @@ CREATE TAG IF NOT EXISTS PLT.GOVERNANCE.DV_ZONE
 Let's create a schema in the platform database for administration tools, containing helpers we'll use as the platform administrator, reducing repetition and helping achieve consistency later in our deployment.
 
 ```sql
+USE ROLE PLT_ADMIN;
+
 CREATE SCHEMA IF NOT EXISTS PLT.ADMIN_TOOLS
   WITH MANAGED ACCESS
   COMMENT = 'Common platform administration tools and utilities';
@@ -448,11 +450,28 @@ With Snowflake, schema objects -- which include tables, views, stages, files for
 
 In a real world scenario, because the data in the Landing Zone is source-system-oriented, a schema found in a Landing Zone database should be associated with a source system. For the sake of simplicity, let's create a single schema designed to land ingested sample data from the TPC-H decision support benchmark.
 
+```sql
+USE ROLE PLT_ADMIN;
 
+CALL PLT.ADMIN_TOOLS.CREATE_SOURCE_SCHEMA_AND_ROLES('DEV_LZ', 'TPCH', 'TPC-H Sample Data');
+
+GRANT DATABASE ROLE DEV_LZ.TPHC_W TO ROLE DEV_LZ_INGEST;
+```
+> Note the simplicity of creating the TPCH source schema and granting write access to the functional role DEV_LZ_INGEST, by utilizing a common stored procedure that creates the managed access schema, access roles, and privileges to those access roles.
 
 ### Step 7: Domain-Oriented Schemas
 
+Now, let's create domain-oriented schemas in the DV and DW databases, representing our Enterprise Memory and Information Delivery Zones.
 
+```sql
+USE ROLE PLT_ADMIN;
+
+CALL PLT.ADMIN_TOOLS.CREATE_DOMAIN_SCHEMA_AND_ROLES('DEV_DV', 'SALESMKT', 'Sales & Marketing');
+CALL PLT.ADMIN_TOOLS.CREATE_DOMAIN_SCHEMA_AND_ROLES('DEV_DV', 'CUSTSERV', 'Customer Service');
+CALL PLT.ADMIN_TOOLS.CREATE_DOMAIN_SCHEMA_AND_ROLES('DEV_DW', 'SALESMKT', 'Sales & Marketing');
+CALL PLT.ADMIN_TOOLS.CREATE_DOMAIN_SCHEMA_AND_ROLES('DEV_DW', 'CUSTSERV', 'Customer Service');
+```
+> Note that while the stored proceure creates the schemas and access roles, we don't yet have domain-oriented functional roles to which we may grant the access roles.
 
 ### Step 8: Domain-Oriented Roles and Privileges
 
