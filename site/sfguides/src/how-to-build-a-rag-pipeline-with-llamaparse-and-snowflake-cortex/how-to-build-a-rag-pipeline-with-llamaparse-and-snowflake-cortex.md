@@ -192,3 +192,9 @@ rag = RAG(session)
 response = rag.query("What was the total revenue (in billions) for Snowflake in FY 2024? How much of that was product revenue?")
 print(response)
 ```
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view quickstart](https://quickstarts.snowflake.com/guide/getting-started-with-llamaparse-and-cortex-search)
+- [fork the repo](https://github.com/sfc-gh-jreini/llama-parse-cortex-search/blob/main/llama-cloud-snowflake.ipynb)

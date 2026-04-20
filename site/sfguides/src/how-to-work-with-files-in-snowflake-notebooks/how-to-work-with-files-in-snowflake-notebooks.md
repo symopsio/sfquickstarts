@@ -527,3 +527,9 @@ git clone [email protected]:Snowflake-Labs/sfguide-data-engineering-pipelines-w
       ]
     }
 ```
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view notebook](https://www.snowflake.com/notebooks/?staticAppId=Working_with_Files)
+- [fork repo](https://github.com/Snowflake-Labs/snowflake-demo-notebooks/tree/main/Working%20with%20Files)

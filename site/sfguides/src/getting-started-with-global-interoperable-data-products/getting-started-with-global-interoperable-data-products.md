@@ -58,3 +58,7 @@ When combined with [Delta Direct](https://docs.snowflake.com/en/sql-reference/sq
 
 ![de connect open data sharing diagram](assets/de-connect-open-data-sharing.png)
 
+<!-- ------------------------ -->
+## Get Started
+
+- [view quickstart](https://quickstarts.snowflake.com/guide/horizon_intra_org_sharing/#0)

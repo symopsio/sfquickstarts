@@ -27,3 +27,12 @@ This solution architecture helps you understand how to use Snowflake Notebooks a
 * In this use-case, we use Snowflake Notebooks to write and execute code, visualize results, and tell the story of your analysis all in one place.
 * Contextualize results and make notes about different results with Markdown cells.
 * Make use of the role-based access control and other data governance functionality available in Snowflake to allow other users with the same role to view and collaborate on the notebook.
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view notebook](https://www.snowflake.com/notebooks/?staticAppId=My_First_Notebook_Project)
+- [fork repo](https://github.com/Snowflake-Labs/snowflake-demo-notebooks/tree/main/My%20First%20Notebook%20Project)
+- [Fork repo on GitHub](https://github.com/Snowflake-Labs/snowflake-demo-notebooks/blob/main/My%20First%20Notebook%20Project/My%20First%20Notebook%20Project.ipynb)
+- [View the quickstart guide](https://quickstarts.snowflake.com/guide/getting_started_with_snowflake_notebooks/index.html)
+- [Download reference architecture](https://www.snowflake.com/content/dam/snowflake-site/developers/2024/05/Getting-Started-with-Your-First-Snowflake-Notebook-Project.pdf)

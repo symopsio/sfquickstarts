@@ -527,3 +527,9 @@ git clone [email protected]:Snowflake-Labs/sfguide-data-engineering-pipelines-w
       ]
     }
 ```
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view notebook](https://www.snowflake.com/notebooks/?staticAppId=Load_CSV_from_S3)
+- [fork repo](https://github.com/Snowflake-Labs/snowflake-demo-notebooks/tree/main/Load%20CSV%20from%20S3)
