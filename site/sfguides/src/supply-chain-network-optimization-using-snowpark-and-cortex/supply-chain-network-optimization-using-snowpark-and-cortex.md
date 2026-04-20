@@ -6,7 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/supply-chain-network-optimization-using-snowpark-and-cortex
+fork repo link: https://github.com/Snowflake-Labs/emerging-solutions-toolbox/tree/main/sfguide-supply-chain-network-optimization
 
 # Supply chain network optimization using Linear Programming
 <!-- ------------------------ -->
