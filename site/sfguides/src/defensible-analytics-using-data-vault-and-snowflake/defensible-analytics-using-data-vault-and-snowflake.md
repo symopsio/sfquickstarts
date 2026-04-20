@@ -96,8 +96,7 @@ CREATE WAREHOUSE IF NOT EXISTS ADMIN_WH
   INITIALLY_SUSPENDED = TRUE
   COMMENT = 'Administration warehouse for platform admin tasks';
 
-GRANT USAGE ON WAREHOUSE ADMIN_WH TO ROLE PLT_ADMIN;
-GRANT OPERATE ON WAREHOUSE ADMIN_WH TO ROLE PLT_ADMIN;
+GRANT ALL PRIVILEGES ON WAREHOUSE ADMIN_WH TO ROLE PLT_ADMIN;
 
 -- Platform Database -----------------------------------------------------------
 CREATE DATABASE IF NOT EXISTS PLT
@@ -105,8 +104,7 @@ CREATE DATABASE IF NOT EXISTS PLT
 
 DROP SCHEMA IF EXISTS PLT.PUBLIC;
 
-GRANT CREATE SCHEMA ON DATABASE PLT TO ROLE PLT_ADMIN;
-GRANT CREATE DATABASE ROLE ON DATABASE PLT TO ROLE PLT_ADMIN;
+GRANT ALL PRIVILEGES ON DATABASE PLT TO ROLE PLT_ADMIN;
 ```
 
 ### Step 2: Platform Governance Schema
@@ -231,7 +229,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE PLT.ADMIN_TOOLS.CREATE_SOURCE_SCHEMA_AND_ROLES(
+CREATE OR REPLACE PROCEDURE PLT.ADMIN_TOOLS.CREATE_LZ_SCHEMA_AND_ROLES(
     DATABASE_NAME   VARCHAR,
     SCHEMA_NAME     VARCHAR,
     SOURCE_SYSTEM   VARCHAR
@@ -283,7 +281,6 @@ DECLARE
     v_db     VARCHAR DEFAULT UPPER(DATABASE_NAME);
     v_schema VARCHAR DEFAULT UPPER(SCHEMA_NAME);
 BEGIN
-
     CALL PLT.ADMIN_TOOLS.CREATE_SCHEMA_AND_ROLES(:v_db, :v_schema, :DOMAIN);
 
     -- _R: read access to domain schema objects
@@ -298,9 +295,7 @@ BEGIN
     EXECUTE IMMEDIATE 'GRANT USAGE ON FUTURE PROCEDURES IN SCHEMA ' || v_db || '.' || v_schema
         || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_R';
 
-    -- _W: additional write access to domain schema objects
-    EXECUTE IMMEDIATE 'GRANT INSERT, UPDATE, DELETE, TRUNCATE ON FUTURE TABLES IN SCHEMA ' || v_db || '.' || v_schema
-        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    -- _W: write access and pipeline management
     EXECUTE IMMEDIATE 'GRANT SELECT ON FUTURE STREAMS IN SCHEMA ' || v_db || '.' || v_schema
         || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
     EXECUTE IMMEDIATE 'GRANT MONITOR, OPERATE ON FUTURE TASKS IN SCHEMA ' || v_db || '.' || v_schema
@@ -323,6 +318,8 @@ BEGIN
         || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
     EXECUTE IMMEDIATE 'GRANT CREATE TASK ON SCHEMA ' || v_db || '.' || v_schema
         || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    EXECUTE IMMEDIATE 'GRANT CREATE STAGE ON SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
     EXECUTE IMMEDIATE 'GRANT CREATE DATA METRIC FUNCTION ON SCHEMA ' || v_db || '.' || v_schema
         || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
     EXECUTE IMMEDIATE 'GRANT CREATE MASKING POLICY ON SCHEMA ' || v_db || '.' || v_schema
@@ -331,11 +328,65 @@ BEGIN
         || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
     EXECUTE IMMEDIATE 'GRANT CREATE TAG ON SCHEMA ' || v_db || '.' || v_schema
         || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
-    EXECUTE IMMEDIATE 'GRANT CREATE STAGE ON SCHEMA ' || v_db || '.' || v_schema
+
+    RETURN 'SUCCESS: Created domain schema ' || v_db || '.' || v_schema
+        || ' for ' || DOMAIN || '.';
+END;
+$$;
+
+CREATE OR REPLACE PROCEDURE PLT.ADMIN_TOOLS.CREATE_DV_SCHEMA_AND_ROLES(
+    DATABASE_NAME   VARCHAR,
+    SCHEMA_NAME     VARCHAR,
+    DOMAIN          VARCHAR
+)
+RETURNS VARCHAR
+LANGUAGE SQL
+EXECUTE AS CALLER
+AS
+$$
+DECLARE
+    v_db     VARCHAR DEFAULT UPPER(DATABASE_NAME);
+    v_schema VARCHAR DEFAULT UPPER(SCHEMA_NAME);
+BEGIN
+    CALL PLT.ADMIN_TOOLS.CREATE_DOMAIN_SCHEMA_AND_ROLES(:v_db, :v_schema, :DOMAIN);
+
+    -- _W: insert-only (DV tables are immutable)
+    EXECUTE IMMEDIATE 'GRANT INSERT ON FUTURE TABLES IN SCHEMA ' || v_db || '.' || v_schema
         || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
 
-    RETURN 'SUCCESS: Created schema ' || v_db || '.' || v_schema
-        || ' for domain ' || DOMAIN || ' with future grants applied.';
+    RETURN 'SUCCESS: Created Data Vault schema ' || v_db || '.' || v_schema
+        || ' for ' || DOMAIN || ' with future grants applied.';
+END;
+$$;
+
+CREATE OR REPLACE PROCEDURE PLT.ADMIN_TOOLS.CREATE_DW_SCHEMA_AND_ROLES(
+    DATABASE_NAME   VARCHAR,
+    SCHEMA_NAME     VARCHAR,
+    DOMAIN          VARCHAR
+)
+RETURNS VARCHAR
+LANGUAGE SQL
+EXECUTE AS CALLER
+AS
+$$
+DECLARE
+    v_db     VARCHAR DEFAULT UPPER(DATABASE_NAME);
+    v_schema VARCHAR DEFAULT UPPER(SCHEMA_NAME);
+BEGIN
+    CALL PLT.ADMIN_TOOLS.CREATE_DOMAIN_SCHEMA_AND_ROLES(:v_db, :v_schema, :DOMAIN);
+
+    -- _W: full write access to DW tables
+    EXECUTE IMMEDIATE 'GRANT INSERT, UPDATE, DELETE, TRUNCATE ON FUTURE TABLES IN SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+
+    -- _R/_W: semantic view access (DW schemas are AI-agent consumable)
+    EXECUTE IMMEDIATE 'GRANT USAGE ON FUTURE SEMANTIC VIEWS IN SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_R';
+    EXECUTE IMMEDIATE 'GRANT CREATE SEMANTIC VIEW ON SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+
+    RETURN 'SUCCESS: Created Data Warehouse schema ' || v_db || '.' || v_schema
+        || ' for ' || DOMAIN || ' with future grants applied.';
 END;
 $$;
 ```
@@ -361,10 +412,10 @@ CREATE WAREHOUSE IF NOT EXISTS DEV_INGEST_WH
   AUTO_SUSPEND = 60
   AUTO_RESUME = TRUE
   INITIALLY_SUSPENDED = TRUE
-  COMMENT = 'Warehouse for data ingestion workloads';
+  COMMENT = 'Warehouse for automated data ingestion workloads';
 
-GRANT USAGE ON WAREHOUSE DEV_INGEST_WH TO ROLE DEV_LZ_INGEST;
-GRANT OPERATE ON WAREHOUSE DEV_INGEST_WH TO ROLE DEV_LZ_INGEST;
+GRANT ALL PRIVILEGES ON WAREHOUSE DEV_INGEST_WH TO ROLE PLT_ADMIN;
+GRANT USAGE, OPERATE ON WAREHOUSE DEV_INGEST_WH TO ROLE DEV_LZ_INGEST;
 
 -- Development LZ Ingestion Warehouse ------------------------------------------
 CREATE DATABASE IF NOT EXISTS DEV_LZ
@@ -372,8 +423,7 @@ CREATE DATABASE IF NOT EXISTS DEV_LZ
 
 DROP SCHEMA IF EXISTS DEV_LZ.PUBLIC;
 
-GRANT CREATE SCHEMA ON DATABASE DEV_LZ TO ROLE PLT_ADMIN;
-GRANT CREATE DATABASE ROLE ON DATABASE DEV_LZ TO ROLE PLT_ADMIN;
+GRANT ALL PRIVILEGES ON DATABASE DEV_LZ TO ROLE PLT_ADMIN;
 ```
 
 > **Development Environment**
@@ -382,10 +432,19 @@ GRANT CREATE DATABASE ROLE ON DATABASE DEV_LZ TO ROLE PLT_ADMIN;
 
 ### Step 5: Enterprise Memory and Information Delivery Zone Databases
 
-Now, let's create two more databases. The first will serve as our Data Vault, holding staging, raw vault, and business vault objects. The second will serve as our analyst-facing interface to the Information Delivery Zone. We'll also create a warehouse designed for transforming data.
+Now, let's create two more databases. The first will serve as our Data Vault, holding staging, raw vault, and business vault objects. The second will serve as our analyst-facing interface to the Information Delivery Zone. We'll also create a role and a warehouse for engineering (development and testing) use, and a warehouse for automated transforming data.
 
 ```sql
--- Data Transformation Warehouse -----------------------------------------------
+-- Analysis Role ---------------------------------------------------------------
+USE ROLE SECURITYADMIN;
+
+CREATE ROLE IF NOT EXISTS QA_ANALYST;
+  COMMENT = 'General analyst role with read-only access to the information delivery zone';
+
+GRANT ROLE QA_ANALYST TO ROLE PLT_ADMIN;
+
+
+-- Data Transformation and Engineering Warehouses ------------------------------
 USE ROLE SYSADMIN;
 
 CREATE WAREHOUSE IF NOT EXISTS DEV_XFORM_WH
@@ -393,7 +452,19 @@ CREATE WAREHOUSE IF NOT EXISTS DEV_XFORM_WH
   AUTO_SUSPEND = 60
   AUTO_RESUME = TRUE
   INITIALLY_SUSPENDED = TRUE
-  COMMENT = 'Warehouse for data transformation workloads';
+  COMMENT = 'Warehouse for automated data transformation workloads';
+
+GRANT ALL PRIVILEGES ON WAREHOUSE DEV_XFORM_WH TO ROLE PLT_ADMIN;
+
+CREATE WAREHOUSE IF NOT EXISTS ENGINEERING_WH
+  WAREHOUSE_SIZE = 'XSMALL'
+  AUTO_SUSPEND = 60
+  AUTO_RESUME = TRUE
+  INITIALLY_SUSPENDED = TRUE
+  COMMENT = 'Warehouse for general development and testing use';
+
+GRANT ALL PRIVILEGES ON WAREHOUSE ENGINEERING_WH TO ROLE PLT_ADMIN;
+GRANT USAGE, OPERATE ON WAREHOUSE ENGINEERING_WH TO ROLE QA_ANALYST;
 
 -- Data Vault Database ---------------------------------------------------------
 CREATE DATABASE IF NOT EXISTS DEV_DV
@@ -401,8 +472,7 @@ CREATE DATABASE IF NOT EXISTS DEV_DV
 
 DROP SCHEMA IF EXISTS DEV_DV.PUBLIC;
 
-GRANT CREATE SCHEMA ON DATABASE DEV_DV TO ROLE PLT_ADMIN;
-GRANT CREATE DATABASE ROLE ON DATABASE DEV_DV TO ROLE PLT_ADMIN;
+GRANT ALL PRIVILEGES ON DATABASE DEV_DV TO ROLE PLT_ADMIN;
 
 -- Data Warehouse Database -----------------------------------------------------
 CREATE DATABASE IF NOT EXISTS DEV_DW
@@ -410,8 +480,7 @@ CREATE DATABASE IF NOT EXISTS DEV_DW
 
 DROP SCHEMA IF EXISTS DEV_DW.PUBLIC;
 
-GRANT CREATE SCHEMA ON DATABASE DEV_DW TO ROLE PLT_ADMIN;
-GRANT CREATE DATABASE ROLE ON DATABASE DEV_DW TO ROLE PLT_ADMIN;
+GRANT ALL PRIVILEGES ON DATABASE DEV_DW TO ROLE PLT_ADMIN;
 ```
 
 > **Transformation and Ingestion Privileges**
@@ -453,10 +522,11 @@ In a real world scenario, because the data in the Landing Zone is source-system-
 ```sql
 USE ROLE PLT_ADMIN;
 
-CALL PLT.ADMIN_TOOLS.CREATE_SOURCE_SCHEMA_AND_ROLES('DEV_LZ', 'TPCH', 'TPC-H Sample Data');
+CALL PLT.ADMIN_TOOLS.CREATE_LZ_SCHEMA_AND_ROLES('DEV_LZ', 'TPCH', 'TPC-H Sample Data');
 
 GRANT DATABASE ROLE DEV_LZ.TPHC_W TO ROLE DEV_LZ_INGEST;
 ```
+
 > Note the simplicity of creating the TPCH source schema and granting write access to the functional role DEV_LZ_INGEST, by utilizing a common stored procedure that creates the managed access schema, access roles, and privileges to those access roles.
 
 ### Step 7: Domain-Oriented Schemas
@@ -467,22 +537,54 @@ Now, let's create domain-oriented schemas in the DV and DW databases, representi
 USE ROLE PLT_ADMIN;
 
 CALL PLT.ADMIN_TOOLS.CREATE_DOMAIN_SCHEMA_AND_ROLES('DEV_DV', 'SALESMKT', 'Sales & Marketing');
-CALL PLT.ADMIN_TOOLS.CREATE_DOMAIN_SCHEMA_AND_ROLES('DEV_DV', 'CUSTSERV', 'Customer Service');
 CALL PLT.ADMIN_TOOLS.CREATE_DOMAIN_SCHEMA_AND_ROLES('DEV_DW', 'SALESMKT', 'Sales & Marketing');
+CALL PLT.ADMIN_TOOLS.CREATE_DOMAIN_SCHEMA_AND_ROLES('DEV_DV', 'CUSTSERV', 'Customer Service');
 CALL PLT.ADMIN_TOOLS.CREATE_DOMAIN_SCHEMA_AND_ROLES('DEV_DW', 'CUSTSERV', 'Customer Service');
 ```
 > Note that while the stored proceure creates the schemas and access roles, we don't yet have domain-oriented functional roles to which we may grant the access roles.
 
 ### Step 8: Domain-Oriented Roles and Privileges
 
+Now, let's create domain-oriented functional roles, and grant access allowing for reading from the landing zone and other domain's data vault objects, but writing only to the domain-specific schemas in the Enterprise Memory and Information Delivery Zones. We grant read access to the entire Landing Zone, because source systems are often not domain specific. A domain-specific Landing Zone database could be used for a set of source systems restricted to just one domain. We grant cross-domain read access to the data vault models to avoid duplication of efforts and promote effective governance, while allowing one domain to leverage curated information from another. We restrict writing to the domain-specific roles, promoting accountability and effective governance over what is built.
 
+```sql
+USE ROLE SECURITYADMIN;
+
+CREATE ROLE IF NOT EXISTS SALESMKT_ENGINEER;
+  COMMENT = 'Data engineering role for the development of Sales & Marketing objects and transformations';
+CREATE ROLE IF NOT EXISTS CUSTSERV_ENGINEER;
+  COMMENT = 'Data engineering role for the development of Customer Service objects and transformations';
+
+GRANT USAGE, OPERATE ON WAREHOUSE ENGINEERING_WH TO ROLE SALESMKT_ENGINEER;
+GRANT USAGE, OPERATE ON WAREHOUSE DEV_XFORM_WH TO ROLE SALESMKT_ENGINEER;
+
+GRANT USAGE, OPERATE ON WAREHOUSE ENGINEERING_WH TO ROLE CUSTSERV_ENGINEER;
+GRANT USAGE, OPERATE ON WAREHOUSE DEV_XFORM_WH TO ROLE CUSTSERV_ENGINEER;
+
+
+USE ROLE PLT_ADMIN;
+
+GRANT DATABASE ROLE DEV_LZ.DB_R TO ROLE SALESMKT_ENGINEER;
+GRANT DATABASE ROLE DEV_DV.SALESMKT_W TO ROLE SALESMKT_ENGINEER;
+GRANT DATABASE ROLE DEV_DV.DB_R TO ROLE SALESMKT_ENGINEER;
+GRANT DATABASE ROLE DEV_DW.SALESMKT_W TO ROLE SALESMKT_ENGINEER;
+
+GRANT DATABASE ROLE DEV_LZ.DB_R TO ROLE CUSTSERV_ENGINEER;
+GRANT DATABASE ROLE DEV_DV.SALESMKT_W TO ROLE CUSTSERV_ENGINEER;
+GRANT DATABASE ROLE DEV_DV.DB_R TO ROLE CUSTSERV_ENGINEER;
+GRANT DATABASE ROLE DEV_DW.SALESMKT_W TO ROLE CUSTSERV_ENGINEER;
+
+GRANT DATABASE ROLE DEV_DW.DB_R TO ROLE QA_ANALYST;
+```
 
 <!-- ------------------------ -->
 ## Conclusion And Resources
 
-At the end of your Snowflake Guide, always have a clear call to action (CTA). This CTA could be a link to the docs pages, links to videos on youtube, a GitHub repo link, etc. 
+We covered some of the basics to get started. As an architect, you may be considering creating a test and main production environments; or additional tags, access policies, and data metric functions; or additional common functions and stored procedures; or a Presentation Zone database for custom customer-facing data shares or Streamlit apps and dashboards. 
 
-If you want to learn more about Snowflake Guide formatting, checkout the official documentation here: [Snowflake Guide](#)
+You are now ready to advance to the [next guide, Building a Real-Time Data Vault in Snowflake](https://www.snowflake.com/en/developers/guides/vhol-data-vault/)! Data Vault 2.x consists of 3 pillars -- methodology, architecture, and model -- and while this guide focuses on architecture, the next guide focuses on modeling. We've updated that guide to leverage the structure defined here, as well as adding some new content, such as Dynamic Tables and Data Metric Functions.
+
+If you want to learn more about Data Vault 2.1, check out the latest content from Data Vault Alliance: the [blog, training and certification resources](https://datavaultalliance.com/), the [DVA United](https://www.dvaunited.com/) community, and free content on [YouTube](https://www.youtube.com/@DataVaultAlliance/videos).
 
 ### What You Learned
 - Basics of creating sections
