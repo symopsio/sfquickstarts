@@ -6,7 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/getting-started-with-the-data-quality-manager
+fork repo link: https://github.com/Snowflake-Labs/emerging-solutions-toolbox/tree/main/sfguide-getting-started-with-data-quality-manager
 
 # Application Framework: Getting started with the Data Quality Manager
 <!-- ------------------------ -->

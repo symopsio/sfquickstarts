@@ -6,7 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/driving-customer-growth-and-retention-with-lang-ai
+fork repo link: https://github.com/Snowflake-Labs/sf-samples/tree/main/samples/create_ai_agents_on_snowflake_with_lang_ai
 
 # Driving Customer Growth and Retention with Lang.ai
 <!-- ------------------------ -->
