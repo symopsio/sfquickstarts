@@ -6,7 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/build-custom-llm-apps-with-snowpark-container-services-and-nvidia
+fork repo link: https://github.com/Snowflake-Labs/sfguide-build-ai-app-using-nvidia-snowpark-container-services
 
 # Build LLM Apps with Snowpark Container Services and NVIDIA
 <!-- ------------------------ -->

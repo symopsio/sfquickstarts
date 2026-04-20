@@ -6,7 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/clinical-data-analysis-with-adam-and-sdtm-in-snowflake
+fork repo link: https://github.com/Snowflake-Labs/sfguide-getting-started-with-adam-and-sdtm-in-snowpark
 
 # Clinical Data Analysis with ADaM and SDTM in Snowflake
 <!-- ------------------------ -->

@@ -6,7 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/creating-semantic-models-for-snowflakes-cortex-analyst
+fork repo link: https://github.com/Snowflake-Labs/sfguide-getting-started-with-cortex-analyst?_fsi=pU0VIAsc&_fsi=pU0VIAsc
 
 # Building AI-powered BI apps using Snowflake Cortex Analyst
 <!-- ------------------------ -->
