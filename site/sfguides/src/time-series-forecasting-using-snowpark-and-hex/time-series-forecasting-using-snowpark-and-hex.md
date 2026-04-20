@@ -6,6 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
+fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/time-series-forecasting-using-snowpark-and-hex
 
 # Parallelized Time Series Analysis of Restaurant Foot Traffic
 <!-- ------------------------ -->
