@@ -157,3 +157,10 @@ classified_reviews AS (
   FROM clothing_issue_reviews
 )
 ```
+
+<!-- ------------------------ -->
+## Get Started
+
+- [open in snowflake](https://app.snowflake.com/templates?template=customer_review_analysis_with_aisql&utm_source=solutioncenter&utm_medium=solutioncenter&utm_campaign=-us-en-all&utm_content=app-customer-review-template)
+- [Template Documentation](https://docs.snowflake.com/en/user-guide/ui-snowsight/snowsight-templates)
+- [Cortex AI SQL Functions](https://docs.snowflake.com/en/user-guide/snowflake-cortex/aisql)
