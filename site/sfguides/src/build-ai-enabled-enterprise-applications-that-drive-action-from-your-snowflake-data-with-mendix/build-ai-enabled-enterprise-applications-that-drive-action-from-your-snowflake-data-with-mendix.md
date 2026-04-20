@@ -6,6 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
+fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/build-ai-enabled-enterprise-applications-that-drive-action-from-your-snowflake-data-with-mendix
 
 # Build AI-Enabled Enterprise Applications That Drive Action From Your Snowflake Data With Mendix
 <!-- ------------------------ -->
