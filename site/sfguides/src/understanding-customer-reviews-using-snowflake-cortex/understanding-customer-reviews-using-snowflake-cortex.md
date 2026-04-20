@@ -6,7 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/understanding-customer-reviews-using-snowflake-cortex
+open in snowflake: https://app.snowflake.com/templates?template=customer_review_analysis_with_aisql&utm_source=solutioncenter&utm_medium=solutioncenter&utm_campaign=-us-en-all&utm_content=app-customer-review-template
 
 # Understanding Customer Reviews using Snowflake Cortex
 <!-- ------------------------ -->
