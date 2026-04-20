@@ -5,7 +5,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/managing-ml-models-from-iteration-to-production-with-mlops-in-snowflake
+fork repo link: https://github.com/Snowflake-Labs/sf-samples/blob/main/samples/ml/mlops_using_model.ipynb
 
 # Managing ML Models from Iteration to Production with MLOps
 <!-- ------------------------ -->

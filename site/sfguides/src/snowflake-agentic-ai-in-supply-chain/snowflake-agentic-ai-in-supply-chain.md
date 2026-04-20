@@ -6,7 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/snowflake-agentic-ai-in-supply-chain
+fork repo link: https://github.com/Snowflake-Labs/sfguide-supply-chain-assistant-with-snowflake-intelligence
 
 # Supply Chain Assistant for Inventory Optimization with Snowflake Intelligence
 <!-- ------------------------ -->
