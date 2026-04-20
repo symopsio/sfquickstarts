@@ -6,7 +6,8 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/how-to-load-csv-files-from-stage-to-snowflake-notebooks
+fork repo link: https://github.com/Snowflake-Labs/snowflake-demo-notebooks/tree/main/Load%20CSV%20from%20S3
+open in snowflake: https://www.snowflake.com/notebooks/?staticAppId=Load_CSV_from_S3
 
 # How to load CSV files from stage to Snowflake Notebooks
 <!-- ------------------------ -->

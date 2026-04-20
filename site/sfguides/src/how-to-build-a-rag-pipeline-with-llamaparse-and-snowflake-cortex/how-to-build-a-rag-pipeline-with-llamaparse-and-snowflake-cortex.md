@@ -6,7 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/how-to-build-a-rag-pipeline-with-llamaparse-and-snowflake-cortex
+fork repo link: https://github.com/sfc-gh-jreini/llama-parse-cortex-search/blob/main/llama-cloud-snowflake.ipynb
 
 # How to Build a RAG Pipeline with LlamaParse and Snowflake Cortex
 <!-- ------------------------ -->

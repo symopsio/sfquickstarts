@@ -6,7 +6,8 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/getting-started-with-your-first-snowflake-notebook-project
+fork repo link: https://github.com/Snowflake-Labs/snowflake-demo-notebooks/tree/main/My%20First%20Notebook%20Project
+open in snowflake: https://www.snowflake.com/notebooks/?staticAppId=My_First_Notebook_Project
 
 # Getting Started with Your First Snowflake Notebook Project
 <!-- ------------------------ -->

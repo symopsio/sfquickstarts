@@ -6,7 +6,8 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/how-to-work-with-files-in-snowflake-notebooks
+fork repo link: https://github.com/Snowflake-Labs/snowflake-demo-notebooks/tree/main/Working%20with%20Files
+open in snowflake: https://www.snowflake.com/notebooks/?staticAppId=Working_with_Files
 
 # How to work with files in Snowflake Notebooks
 <!-- ------------------------ -->
