@@ -6,7 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/enriching-consumer-data-through-a-snowflake-native-app
+fork repo link: https://github.com/Snowflake-Labs/emerging-solutions-toolbox/tree/main/sfguide-getting-started-with-api-enrichment-framework
 
 # Enriching consumer data through a Snowflake Native App
 <!-- ------------------------ -->

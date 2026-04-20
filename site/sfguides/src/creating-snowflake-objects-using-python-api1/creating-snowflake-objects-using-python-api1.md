@@ -6,7 +6,8 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/creating-snowflake-objects-using-python-api1
+fork repo link: https://github.com/Snowflake-Labs/snowflake-demo-notebooks/tree/main/Creating%20Snowflake%20Object%20using%20Python%20API
+open in snowflake: https://www.snowflake.com/notebooks/?staticAppId=Creating_Snowflake_Object_using_Python_API
 
 # Creating Snowflake Objects, using Python API
 <!-- ------------------------ -->

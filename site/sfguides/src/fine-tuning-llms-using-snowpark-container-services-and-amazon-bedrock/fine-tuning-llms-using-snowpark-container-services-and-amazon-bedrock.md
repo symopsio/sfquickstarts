@@ -6,7 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/fine-tuning-llms-using-snowpark-container-services-and-amazon-bedrock
+fork repo link: https://github.com/Snowflake-Labs/sfguide-getting-started-with-bedrock-streamlit-and-snowflake/tree/main
 
 # Fine tuning LLMs using Snowpark Container Services and Amazon Bedrock
 <!-- ------------------------ -->
