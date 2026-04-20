@@ -478,7 +478,12 @@ As your organization's needs grow, you can evolve from a single agent with multi
 * **Implementing Advanced Analytics**: Add tools for predictive analytics, optimization, or machine learning inference
 * **Setting Up Email Integration**: Configure email sending capabilities for automated reporting
 
-### Related Resources
+### Get Started
+
+- [fork repo](https://github.com/Snowflake-Labs/sfguide-supply-chain-assistant-with-snowflake-intelligence)
+
+<!-- ------------------------ -->
+## Related Resources
 
 * [Snowflake Cortex Documentation](https://docs.snowflake.com/en/user-guide/snowflake-cortex)
 * [Snowflake Intelligence Documentation](https://docs.snowflake.com/en/user-guide/snowflake-cortex/snowflake-intelligence)

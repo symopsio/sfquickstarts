@@ -29,3 +29,9 @@ Customer’s business ecosystem extends beyond their architectures.  Support fo
 
 ![remote catalogs marketecture](assets/remote-catalogs-marketecture.png)
 
+<!-- ------------------------ -->
+## Get Started
+
+- [View the quickstart guide](https://quickstarts.snowflake.com/guide/data_lake_using_apache_iceberg_with_snowflake_and_aws_glue/index.html?index=..%2F..index#0)
+- [Watch the launch event](https://www.snowflake.com/webinars/product-demo/data-engineering-connect-architect-for-ai-with-open-formats-2025-10-15/)
+- [Read the blog](https://www.snowflake.com/en/blog/data-engineering-lakehouse-open-formats/)

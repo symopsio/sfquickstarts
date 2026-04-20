@@ -42,3 +42,8 @@ It centralizes data preparation, statistical modeling, and visualization in Snow
 * Marketing & CX: Quantify lift from outreach after negative experiences; prioritize cohorts for proactive support.
 * Subscription/Technology: Assess how support or success calls influence retention, upsell, and expansion.
 * Operations & Strategy: Compare alternative support workflows or org changes using causal analysis instead of full RCTs.
+
+<!-- ------------------------ -->
+## Get Started
+
+- [fork notebook](https://github.com/Snowflake-Labs/sfguide-Intervention-detection-for-retail-support)

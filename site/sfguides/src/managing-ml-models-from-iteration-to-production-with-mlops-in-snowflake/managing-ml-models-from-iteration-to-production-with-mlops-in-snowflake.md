@@ -28,3 +28,11 @@ This solution architecture shows you how to manage Machine learning models from 
 * Experiment with the model training and log different model versions in model registry
 * Run inference on a select model from the registry
 * Track model lineage to capture the training set, features, model parameters, etc for every model in the registry
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view quickstart](https://quickstarts.snowflake.com/guide/intro_to_machine_learning_with_snowpark_ml_for_python/)
+- [fork repo](https://github.com/Snowflake-Labs/sf-samples/blob/main/samples/ml/mlops_using_model.ipynb)
+- [Download reference architecture](https://www.snowflake.com/content/dam/snowflake-site/developers/2024/07/Managing-ML-Models-from-Iteration-to-Production-with-MLOps-in-Snowflake.pdf)
+- [Read the Medium blog](https://medium.com/snowflake/end-to-end-machine-learning-with-snowpark-ml-in-snowflake-notebooks-faa42f1f57fc)
