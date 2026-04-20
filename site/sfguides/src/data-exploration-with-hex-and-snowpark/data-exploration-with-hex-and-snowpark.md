@@ -6,7 +6,6 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/data-exploration-with-hex-and-snowpark
 
 # Data Exploration & Analysis using Hex and Snowpark
 <!-- ------------------------ -->

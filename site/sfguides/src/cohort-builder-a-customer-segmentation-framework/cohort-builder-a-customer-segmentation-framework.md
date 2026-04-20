@@ -6,7 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/cohort-builder-a-customer-segmentation-framework
+fork repo link: https://github.com/Snowflake-Labs/emerging-solutions-toolbox/tree/main/sfguide-cohort-builder
 
 # Cohort Builder: A Customer Segmentation Framework
 <!-- ------------------------ -->

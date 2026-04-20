@@ -6,7 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/create-an-llm-generated-data-catalog-using-data-crawler
+fork repo link: https://github.com/Snowflake-Labs/emerging-solutions-toolbox/tree/main/sfguide-data-crawler
 
 # Create an LLM-generated Data Catalog using Data Crawler
 <!-- ------------------------ -->

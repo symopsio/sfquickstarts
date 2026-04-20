@@ -6,7 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/accelerate-the-deployment-of-snowflake-native-code-using-solution-installation-wizard
+fork repo link: https://github.com/Snowflake-Labs/emerging-solutions-toolbox/tree/main/sfguide-solution-installation-wizard
 
 # Advance Snowflake Native Code Deployment
 <!-- ------------------------ -->
