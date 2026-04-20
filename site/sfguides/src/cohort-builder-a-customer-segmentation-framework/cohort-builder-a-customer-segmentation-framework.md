@@ -27,3 +27,11 @@ The Cohort Builder is a versatile solution designed to facilitate the creation, 
 * Scalable Data Processing: It leverages scalable data pipelines to efficiently process large datasets, ensuring quick and accurate cohort segmentation and analysis.
 * Integration and Automation: The solution integrates seamlessly with existing data sources and automates the cohort scheduling process, enabling real-time updates and streamlined workflows.
 * Customizable and Secure: Provides customizable cohort definitions and ensures data security and compliance with relevant regulations, maintaining user privacy and data integrity.
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view quickstart](https://medium.com/snowflake/cohort-builder-streamlining-data-segmentation-with-streamlit-and-snowflake-f4f0137068a0)
+- [fork repo](https://github.com/Snowflake-Labs/emerging-solutions-toolbox/tree/main/sfguide-cohort-builder)
+- [Download reference architecture](https://www.snowflake.com/content/dam/snowflake-site/developers/2024/08/Cohort-Builder-Reference-Architecture.pdf)
+- [Explore emerging solutions toolbox](https://emerging-solutions-toolbox.streamlit.app/)

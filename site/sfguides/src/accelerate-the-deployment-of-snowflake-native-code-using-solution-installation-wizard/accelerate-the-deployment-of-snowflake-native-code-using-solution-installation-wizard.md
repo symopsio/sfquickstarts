@@ -29,3 +29,11 @@ Examples of where one might want to implement the Solution Installation Wizard i
 * The Provider publishes the Native App to the Snowflake Marketplace
 * The Consumer installs the Native App into their Snowflake instance
 * The Consumer launches the included Streamlit interface and is walked through the installation process
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view quickstart](https://medium.com/snowflake/the-solution-installation-wizard-on-snowflake-%EF%B8%8F-ba64ade85d51)
+- [fork repo](https://github.com/Snowflake-Labs/emerging-solutions-toolbox/tree/main/sfguide-solution-installation-wizard)
+- [Download reference architecture](https://www.snowflake.com/content/dam/snowflake-site/developers/2024/05/Solution-Installation-Wizard-Reference-Architecture.pdf)
+- [Explore emerging solutions toolbox](https://emerging-solutions-toolbox.streamlit.app/)

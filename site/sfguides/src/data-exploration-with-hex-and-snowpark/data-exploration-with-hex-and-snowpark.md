@@ -25,3 +25,10 @@ This solution architecture shows how to use Snowpark dataframes to analyze 20 mi
 
 * In this use-case, you learn how to run data exploration and analysis using Snowpark dataframes in Hex notebooks.
 * You will also learn how to visualize the dataframes in Hex.
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view quickstart](https://app.hex.tech/hex-public/app/7fd9dfb0-db2b-4f6b-901f-51b416b2562f/latest)
+- [Download reference architecture](https://www.snowflake.com/content/dam/snowflake-site/developers/2024/03/Snowpark-for-Data-Exploration-in-Hex.pdf)
+- [Read the blog](https://medium.com/snowflake/getting-started-with-snowpark-in-hex-37d06de4b263)

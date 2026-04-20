@@ -27,3 +27,11 @@ fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site
 * External Database Connector and REST SQL Connector - Connectors that are used within Mendix Applications to bi-directionally work with Snowflake Data & AI/ML capabilities (eg. Cortex AI) with ease.
 * Mendix Applications are fully standalone applications with their own front-end and database that run independently to provide direct business value.
 * The applications work on desktop, phone and tablet, with offline-data access available. They feature a rich user-experience that make it easy for anyone to access and interact with your data, using a robust Role-based Access Control system to keep your data secure.
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view quickstart](https://quickstarts.snowflake.com/guide/mendix_data_loader/#0)
+- [View the quickstart guide](https://quickstarts.snowflake.com/guide/mendix_data_loader)
+- [Download reference architecture](https://www.snowflake.com/content/dam/snowflake-site/developers/2025/build-ai-enabled-enterprise-applications)
+- [Read the blog](https://www.mendix.com/blog/double-the-power-of-your-data-with-mendix-and-snowflake/)
