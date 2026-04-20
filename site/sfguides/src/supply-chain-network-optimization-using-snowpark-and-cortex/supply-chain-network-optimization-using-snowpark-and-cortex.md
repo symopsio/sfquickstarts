@@ -29,3 +29,11 @@ The solution architecture shows how to optimize supply chain networks by solving
 * Explains linear programming and how it can benefit customers
 * Demonstrates using Snowflake Cortex LLM functions to enrich supply chain data
 * Includes geospatial analytics and Streamlit UI
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view quickstart](https://medium.com/snowflake/supply-chain-network-optimization-on-snowflake-%EF%B8%8F-521bfc05d4ce)
+- [fork repo](https://github.com/Snowflake-Labs/emerging-solutions-toolbox/tree/main/sfguide-supply-chain-network-optimization)
+- [Download reference architecture](https://www.snowflake.com/content/dam/snowflake-site/developers/2024/05/Supply-Chain-Network-Optimization-Reference-Architecture.pdf)
+- [Explore emerging solutions toolbox](https://emerging-solutions-toolbox.streamlit.app/)

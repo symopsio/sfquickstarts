@@ -77,3 +77,8 @@ Provides a complete framework that can be adapted for different retail categorie
 * **Scenario** **Analysis**: Test different pricing and market conditions
 
 This solution provides a practical foundation for retailers looking to implement time series forecasting within their existing Snowflake environment, with specific focus on incorporating competitive market factors into sales predictions.
+
+<!-- ------------------------ -->
+## Get Started
+
+- [fork notebook](https://github.com/Snowflake-Labs/sfguide-time-series-in-retail)

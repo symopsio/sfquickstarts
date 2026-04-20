@@ -24,3 +24,10 @@ This solution architecture shows how to use Snowpark User-Defined Table Function
 
 * In this use-case, you learn how to use Snowpark to analyze the store locations and customer traffic data.
 * The solution shows how to use Snowpark UDTFs to train several ML models in parallel.
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view quickstart](https://app.hex.tech/hex-public/app/ef7f067f-89e8-4b12-94ea-0ef4f5b1c0b5/latest)
+- [Download reference architecture](https://www.snowflake.com/content/dam/snowflake-site/developers/2024/04/Partitioned-and-parallelized-time-series-forecasting-for-store-locations.pdf)
+- [Read the blog](https://medium.com/snowflake/time-series-analysis-using-snowpark-be49786b381e)
