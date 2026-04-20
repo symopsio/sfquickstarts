@@ -29,3 +29,10 @@ The Olympic Games Data Hub consists of the following components:
 * *olympic\_games\_ingest\_explore.ipynb*: Notebook to fetch data from GitHub and push it into Snowflake tables.
 * *olympics\_games\_data\_hub.py*: Streamlit app for exploring and visualizing the Olympic Games data.
 * *dataset*: folder containing csv dataset that will be uploaded in your Snowflake account.
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view quickstart](https://medium.com/snowflake/olympic-games-analytics-with-snowflake-0af45453bbd2)
+- [fork repo](https://github.com/sfc-gh-mconsoli/olympic_games_data_hub/tree/main)
+- [Download reference architecture](https://www.snowflake.com/content/dam/snowflake-site/developers/2024/08/Olympic-Games-Architecture-Diagram.pdf)

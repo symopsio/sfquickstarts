@@ -48,3 +48,8 @@ This solution is a powerful starting point for various applications within the f
 * Portfolio Management: Get real-time, AI-powered insights into portfolio health, risk, and performance.
 * Due Diligence: Accelerate the due diligence process by quickly extracting critical information from SEC filings and company reports.
 * Market Analysis: Combine live market data with historical research to identify emerging trends and opportunities.
+
+<!-- ------------------------ -->
+## Get Started
+
+- [fork notebook](https://github.com/Snowflake-Labs/sfguide-Snowflake-Asset-Management-with-Cortex-AI/tree/main)

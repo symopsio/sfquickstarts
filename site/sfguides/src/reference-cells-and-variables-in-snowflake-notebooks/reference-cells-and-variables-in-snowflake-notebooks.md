@@ -527,3 +527,9 @@ git clone [email protected]:Snowflake-Labs/sfguide-data-engineering-pipelines-w
       ]
     }
 ```
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view notebook](https://www.snowflake.com/notebooks/?staticAppId=Reference_cells_and_variables)
+- [fork repo](https://github.com/Snowflake-Labs/snowflake-demo-notebooks/tree/main/Reference%20cells%20and%20variables)

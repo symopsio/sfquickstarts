@@ -26,3 +26,11 @@ This solution architecture helps you understand how to build a retrieval augment
 * Fivetran reliably and securely moves PostgreSQL data into Snowflake
 * Structured data is processed and Cortex is used to create embeddings for downstream RAG application
 * Streamlit application provides a question/answer chat capability powered by Snowflake Cortex
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view quickstart](https://quickstarts.snowflake.com/guide/fivetran_vineyard_assistant_chatbot/#0)
+- [fork repo](https://github.com/Snowflake-Labs/sfguide-rag-chatbot-using-snowflake-and-fivetran/)
+- [Download reference architecture](https://www.snowflake.com/content/dam/snowflake-site/developers/2024/10/RAG-based-Chatbot-using-Structured-Data-with-Fivetran-and-Snowflake.pdf)
+- [Read the blog](https://medium.com/snowflake/rethinking-the-use-of-structured-data-in-rag-an-example-with-fivetran-and-snowflake-d524f939d6ba)

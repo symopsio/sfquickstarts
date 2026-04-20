@@ -23,3 +23,10 @@ Siemens Industrial Edge is an edge/on-prem platform, offering functionalities li
 **4** - Build harmonized data layer, mapping time series, orders, bill of materials into a process digital twin.
 
 **5** - Perform analytical operations on harmonized data layer.
+
+<!-- ------------------------ -->
+## Get Started
+
+- [learn more](https://www.snowflake.com/en/customers/all-customers/case-study/siemens-1/)
+- [download connector](https://www.dex.siemens.com/edge/build-your-solution/snowflake-connector?cclcl=en_US)
+- [Download reference architecture](https://www.snowflake.com/content/dam/snowflake-site/general/diagrams/siemens-industrialedge-to-snowflake.pdf)
