@@ -1,0 +1,29 @@
+author: AWS Staff
+id: fine-tuning-llms-using-snowpark-container-services-and-amazon-bedrock
+summary: This solution architecture shows how to build an AI application that uses Amazon Bedrock and Snowflake to create personalized marketing messages to customers.
+categories: snowflake-site:taxonomy/solution-center/certification/community-solution
+environments: web
+language: en
+status: Published
+feedback link: https://github.com/Snowflake-Labs/sfguides/issues
+fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/fine-tuning-llms-using-snowpark-container-services-and-amazon-bedrock
+
+# Fine tuning LLMs using Snowpark Container Services and Amazon Bedrock
+<!-- ------------------------ -->
+## Overview
+
+This solution architecture shows how to build an AI application that uses Amazon Bedrock and Snowflake to create personalized marketing messages to customers.
+
+* Set up environments in both Snowflake and AWS.
+* Create a function that leverages Snowpark External Access to make a call to Amazon Bedrock.
+* Create a Streamlit app that leverages the above function to generate responses using data from Snowflake and prompts.
+
+<!-- ------------------------ -->
+## Solution Architecture: Fine tuning LLMs using Snowpark Container Services and Amazon Bedrock
+
+![Architecture Diagram](assets/aws-bedrock-and-streamlit-reference-architecture-1.png)
+
+* The user interacts with the Streamlit app and provides a prompt and/or parameters.
+* The Streamlit app receives those prompts and accesses relevant data from Snowflake.
+* The app passes the prompts from the user and the Snowflake data to a Bedrock model endpoint using Snowpark External Access to generate a response.
+* The Streamlit app materializes the response back to the user.
