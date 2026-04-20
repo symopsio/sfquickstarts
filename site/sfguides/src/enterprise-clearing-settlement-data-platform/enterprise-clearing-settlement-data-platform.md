@@ -80,3 +80,8 @@ The platform delivers measurable value across the organization:
 
 * **Enterprise Data Products**: Access to five professional data offerings with flexible access levels.
 * **Secure Sharing**: Snowflake-native sharing with built-in governance and auditing.
+
+<!-- ------------------------ -->
+## Get Started
+
+- [fork notebook](https://github.com/Snowflake-Labs/snowflake-settlement-pipeline/tree/main)

@@ -25,3 +25,11 @@ The Alert Hub is a rule-based meta-data driven framework for alerts and notifica
 * Condition and Action Templates allow for easy repeatability across alerts
 * Configuring specific alert conditions and actions from templates is a matter of providing values for variable attributes into the UI
 * Actions can be set up to leverage output from the Condition query
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view quickstart](https://medium.com/snowflake/easier-monitoring-with-the-alert-hub-framework-b4d68fb66738)
+- [fork repo](https://github.com/Snowflake-Labs/emerging-solutions-toolbox/tree/main/sfguide-alert-hub)
+- [Download reference architecture](https://www.snowflake.com/content/dam/snowflake-site/developers/2024/05/Alert-Hub-Reference-Architecture.pdf)
+- [Explore emerging solutions toolbox](https://emerging-solutions-toolbox.streamlit.app/)
