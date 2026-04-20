@@ -31,3 +31,9 @@ This solution will focus on getting started with Cortex Analyst, teaching the me
 * How to integrate Cortex Analyst with Cortex Search to enhance SQL queries generated
 * How to enable Join support for Star Schemas
 * How to enable multi-turn conversations
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view quickstart](https://quickstarts.snowflake.com/guide/getting_started_with_cortex_analyst/index.html#0)
+- [fork repo](https://github.com/Snowflake-Labs/sfguide-getting-started-with-cortex-analyst?_fsi=pU0VIAsc&_fsi=pU0VIAsc)

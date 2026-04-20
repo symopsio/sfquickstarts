@@ -573,6 +573,6 @@ git clone [email protected]:Snowflake-Labs/sfguide-data-engineering-pipelines-w
 ```
 
 <!-- ------------------------ -->
-## Resources
+## Get Started
 
-- [GitHub Repository](https://github.com/Snowflake-Labs/sfguide-getting-started-with-adam-and-sdtm-in-snowpark)
+- [fork notebook](https://github.com/Snowflake-Labs/sfguide-getting-started-with-adam-and-sdtm-in-snowpark)

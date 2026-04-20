@@ -26,3 +26,10 @@ This solution architecture helps you understand how to build an LLM app powered 
 
 * In this use-case, we leverage Snowpark Container Services to run a Model Generator container. It downloads the Mistral-7b-Instruct from HuggingFace and shrinks it using NVIDIA NIM,
 * We build a Streamlit app for the model inference endpoint for the Model Generator
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view quickstart](https://quickstarts.snowflake.com/guide/build_llm_app_nvidia_scs/index.html?index=..%2F..index#0)
+- [fork repo](https://github.com/Snowflake-Labs/sfguide-build-ai-app-using-nvidia-snowpark-container-services)
+- [Download reference architecture](https://www.snowflake.com/content/dam/snowflake-site/developers/2024/05/Build-custom-LLM-Apps-with-Snowpark-Container-Services-and-NVIDIA-Inference-Microservices.pdf)

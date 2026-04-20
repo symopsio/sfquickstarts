@@ -101,3 +101,10 @@ SELECT
   ):content AS layout
 FROM files;
 ```
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view quickstart](https://quickstarts.snowflake.com/guide/avalanche-customer-review-data-analytics/index.html?index=..%2F..index#0)
+- [fork the repo](https://github.com/Snowflake-Labs/snowflake-demo-notebooks/blob/main/Avalanche-Customer-Review-Analytics/Avalanche-Customer-Review-Analytics.ipynb?_fsi=QzKQ5lY6&_fsi=QzKQ5lY6)
+- [Read the Medium blog](https://medium.com/snowflake/towards-building-a-customer-review-analytics-dashboard-with-snowflake-and-streamlit-3decdde91567)

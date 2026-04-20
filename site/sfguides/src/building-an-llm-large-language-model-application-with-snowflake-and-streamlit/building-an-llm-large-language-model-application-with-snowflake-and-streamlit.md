@@ -26,3 +26,10 @@ This solution architecture covers how to build an LLM application that uses diff
 * The user submits an input text to be summarized into the Streamlit app frontend.
 * The app pre-processes the text by splitting it into several chunks, creating documents for each chunk, and applying the summarization chain with the help of the LLM model.
 * After a few moments, the summarized text is displayed in the app.
+
+<!-- ------------------------ -->
+## Get Started
+
+- [view quickstart](https://github.com/dataprofessor/langchain-text-summarization?ref=blog.streamlit.io)
+- [Download reference architecture](https://www.snowflake.com/content/dam/snowflake-site/developers/2024/03/Text-summarization-with-LLMs_-Architecture-Reference.pdf)
+- [Read the blog](https://blog.streamlit.io/langchain-tutorial-3-build-a-text-summarization-app/)
