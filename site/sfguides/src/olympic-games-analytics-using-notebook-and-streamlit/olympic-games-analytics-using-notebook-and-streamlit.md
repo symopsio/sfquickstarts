@@ -6,7 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/olympic-games-analytics-using-notebook-and-streamlit
+fork repo link: https://github.com/sfc-gh-mconsoli/olympic_games_data_hub/tree/main
 
 # Olympic Games Analytics using Notebook and Streamlit
 <!-- ------------------------ -->

@@ -6,7 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/rag-chatbot-on-structured-data-with-fivetran
+fork repo link: https://github.com/Snowflake-Labs/sfguide-rag-chatbot-using-snowflake-and-fivetran/
 
 # Build a RAG-based Chatbot using Fivetran and Snowflake
 <!-- ------------------------ -->

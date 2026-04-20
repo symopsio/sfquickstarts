@@ -6,7 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/investment-portfolio-analytics-with-snowflake-cortex
+fork repo link: https://github.com/Snowflake-Labs/sfguide-Snowflake-Asset-Management-with-Cortex-AI/tree/main
 
 # Investment Portfolio Analytics with Snowflake Cortex
 <!-- ------------------------ -->
