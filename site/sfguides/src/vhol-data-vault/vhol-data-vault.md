@@ -9,14 +9,13 @@ feedback link: https://github.com/Snowflake-Labs/sfguides/issues
 
 # Building a Real-Time Data Vault in Snowflake
 <!-- ------------------------ -->
-## Overview 
+## Continuous Data
 
- 
-In this day and age, with the ever-increasing availability and volume of data from many types of sources such as IoT, mobile devices, and weblogs, there is a growing need, and yes, demand, to go from batch load processes to streaming or “real-time” (RT) loading of data. Businesses are changing at an alarming rate and are becoming more competitive all the time. Those that can harness the value of their data faster to drive better business outcomes will be the ones to prevail.
+Today, with the ever-increasing availability and volume of data from many types of sources such as IoT, mobile devices, and weblogs, there is a growing need, and yes, demand, to go from batch load processes to streaming continuous real-time (RT) data. Businesses change at a rapid rate, becoming more competitive all the time. Those that can harness the value of their data faster to drive better decision making and better business outcomes will prevail.
 
-One of the benefits of using the Data Vault 2.0 architecture is that it was designed from inception not only to accept data loaded using traditional batch mode (which was the prevailing mode in the early 2000s when [Dan Linstedt](https://datavaultalliance.com/#about) introduced Data Vault) but also to easily accept data loading in real or near-realtime (NRT). In the early 2000s, that was a nice-to-have aspect of the approach and meant the methodology was effectively future-proofed from that perspective. Still, few database systems had the capacity to support that kind of requirement. Today, RT or at least NRT loading is almost becoming a mandatory requirement for modern data platforms. Granted, not all loads or use cases need to be NRT, but most forward-thinking organizations need to onboard data for analytics in an NRT manner.
+One of the benefits of using the Data Vault system is that it was designed from inception not only to accept data loaded using traditional batch mode (which was the prevailing mode in the early 2000s when [Dan Linstedt](https://datavaultalliance.com/#about) introduced Data Vault) but also to easily accept data loading continuously in real or near-realtime (NRT). In the early 2000s, that was a nice-to-have aspect of the approach and meant the methodology was effectively future-proofed from that perspective. Still, few database systems had the capacity to support that kind of requirement. Today, RT or at least NRT loading is almost becoming a mandatory requirement for modern data platforms. Granted, not all loads or use cases need to be NRT, but most forward-thinking organizations need to onboard data for analytics in an NRT manner.
 
-Those who have been using the Data Vault approach don’t need to change much other than figure out how to engineer their data pipeline to serve up data to the Data Vault in NRT. The data models don’t need to change; the reporting views don’t need to change; even the loading patterns don’t need to change. (NB: For those that aren’t using Data Vault already, if they have real-time loading requirements, this architecture and method might be worth considering.)
+Those who have been using the Data Vault approach don’t need to change much other than figure out how to engineer their data pipeline to serve up data to the Data Vault in NRT. The data models don’t need to change; the reporting views don’t need to change; even the loading patterns don’t need to change. For those that aren’t using Data Vault already, if they have real-time loading requirements, this architecture and method might be worth considering.
 
 ### Data Vault on Snowflake
 
@@ -25,33 +24,30 @@ There have been numerous [blog posts](/blog/tips-for-optimizing-the-data-vault-a
 Luckily, streaming data is one of the [use-cases](/cloud-data-platform/) that Snowflake was built to support, so we have many features to help us achieve this goal. **This guide is an extended version of the [article](https://datavaultalliance.com/news/building-a-real-time-data-vault-in-snowflake/) posted on Data Vault Alliance website, now including practical steps to build an example of real-time Data Vault feed on Snowflake. Join us on simple-to-follow steps to see it in action.**
 
 ### Prerequisites
-* A Snowflake account. Existing or if you are not(yet) a Snowflake user, you can always get a [trial](https://trial.snowflake.com/) account
+- A Snowflake account, set up using the [Defensible Analytics using Data Vault and Snowflake](https://www.snowflake.com/en/developers/guides/defensible-analytics-using-data-vault-and-snowflake/) guide. If you don't use this guide to set up your account, you'll need to alter the references to roles, databases, schemas, warehouses, and other Snowflake objects to work with your account.
+- Familiarity with [Snowflake key concepts and architecture](https://docs.snowflake.com/en/user-guide/intro-key-concepts)
+- Familiarity with [Data Vault methodology and architecture](https://datavaultalliance.com/#resources)
 
-* Familiarity with Snowflake and Snowflake objects
+### What You’ll Learn
+- How to use Data Vault modeling on Snowflake
+- How to build basic objects and write ELT code for them
+- How to leverage [Snowpipe](https://docs.snowflake.com/en/user-guide/data-load-snowpipe-intro.html) and [Continous Data Pipelines](https://docs.snowflake.com/en/user-guide/data-pipelines.html) to automate data processing
+- How to apply data virtualization to accellerate data access
 
-* Understanding of Data Vault concepts and modelling techniques
-
-### What You’ll Learn 
-* how to use Data Vault on Snowflake
-
-* how to build basic objects and write ELT code for it
-
-* how to leverage [Snowpipe](https://docs.snowflake.com/en/user-guide/data-load-snowpipe-intro.html) and [Continous Data Pipelines](https://docs.snowflake.com/en/user-guide/data-pipelines.html) to automate data processing
-
-* how to apply data virtualization to accellerate data access
+### What You’ll Need 
+- A Snowflake account -- we recommend starting with a [trial](https://trial.snowflake.com/) account
 
 ### What You’ll Build 
-* a Data Vault environment on Snowflake, based on sample dataset 
+- Data Vault models on Snowflake, based on sample dataset 
+- Data pipelines, leveraging streams, tasks and Snowpipe
 
-* data pipelines, leveraging streams, tasks and Snowpipe
 
 <!-- ------------------------ -->
 ## Reference Architecture
 
 Let’s start with the overall architecture to put everything in context. 
 
-![dbt_project.yml](assets/img1.png)  
-
+![Multi-Tier Data Vault Architecture](assets/img1.png)  
 
 On the very left of figure above we have a list of **data providers** that typically include a mix of existing operational databases, old data warehouses, files, lakes as well as 3rd party apps. There is now also the  possibility to leverage Snowflake Data Sharing/Marketplace as a way to tap into new 3rd party data assets to augment your data set. 
 
