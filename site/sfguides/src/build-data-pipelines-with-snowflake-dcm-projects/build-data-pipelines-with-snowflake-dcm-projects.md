@@ -53,7 +53,7 @@ By splitting platform infrastructure and data pipelines into separate projects, 
 In this step, you'll create a Snowsight Workspace linked to the sample DCM Project repository on GitHub.
 
 1. Navigate to **Projects > Workspaces** in Snowsight.
-2. Click **Create** and select **From Git repository**.
+2. Click **Create** (+) and select **Git repository**.
 3. Enter the repository URL: `https://github.com/snowflake-labs/snowflake-dcm-projects`
 4. Select an API Integration for GitHub ([create one if needed](https://docs.snowflake.com/en/user-guide/ui-snowsight/workspaces-git#label-create-a-git-workspace)).
 5. Select **Public repository**.
@@ -102,7 +102,6 @@ GRANT CREATE ROLE ON ACCOUNT TO ROLE dcm_developer;
 GRANT CREATE DATABASE ON ACCOUNT TO ROLE dcm_developer;
 GRANT EXECUTE MANAGED TASK ON ACCOUNT TO ROLE dcm_developer;
 GRANT EXECUTE TASK ON ACCOUNT TO ROLE dcm_developer;
-
 GRANT MANAGE GRANTS ON ACCOUNT TO ROLE dcm_developer;
 ```
 
@@ -148,13 +147,13 @@ default_target: DCM_DEV
 
 targets:
   DCM_DEV:
-    account_identifier: MYORG-MY_DEV_ACCOUNT
+    account_identifier: MYORG-MY_DEV_ACCOUNT # <-- Replace with your account identifier
     project_name: DCM_DEMO.PROJECTS.DCM_PLATFORM_DEV
     project_owner: DCM_DEVELOPER
     templating_config: DEV
 
   DCM_PROD:
-    account_identifier: MYORG-MY_PROD_ACCOUNT
+    account_identifier: MYORG-MY_PROD_ACCOUNT # <-- Replace with your account identifier
     project_name: DCM_DEMO.PROJECTS.DCM_PLATFORM
     project_owner: DCM_PROD_DEPLOYER
     templating_config: PROD
@@ -169,8 +168,7 @@ templating:
     DEV:
       env_suffix: "_DEV"
       users:
-        - "GITHUB_ACTIONS_SERVICE_USER"
-        - "INSERT_YOUR_USER"
+        - "INSERT_YOUR_USER" # <-- Replace with your Snowflake username
       project_owner_role: "DCM_DEVELOPER"
       teams:
         - name: "Finance"
@@ -248,7 +246,7 @@ Open `wh_roles_and_grants.sql`. This is where the Jinja `{% for %}` loop creates
     {% set team_name = team.name | upper %}
     DEFINE WAREHOUSE dcm_demo_2_{{team_name}}_wh{{env_suffix}}
         WITH WAREHOUSE_SIZE='{{wh_size}}'
-        COMMENT = 'For DCM Demo Quickstart 2';
+        COMMENT = 'For DCM Build Data Pipelines Quickstart';
     DEFINE DATABASE dcm_demo_2_{{team_name}}{{env_suffix}};
     DEFINE SCHEMA dcm_demo_2_{{team_name}}{{env_suffix}}.projects;
     DEFINE SCHEMA dcm_demo_2_{{team_name}}{{env_suffix}}.analytics;
@@ -362,7 +360,7 @@ CREATE DATABASE IF NOT EXISTS dcm_demo;
 CREATE SCHEMA IF NOT EXISTS dcm_demo.projects;
 
 CREATE DCM PROJECT IF NOT EXISTS dcm_demo.projects.dcm_platform_dev
-    COMMENT = 'for DCM Platform Demo - Quickstart 2';
+    COMMENT = 'for DCM Platform Demo - Build Data Pipelines Quickstart';
 ```
 
 The Platform project object lives in `dcm_demo.projects`. Later, you'll create the Pipeline project object in the Finance team's database instead — demonstrating how teams can own their own projects independently.
@@ -376,10 +374,11 @@ The Platform project object lives in `dcm_demo.projects`. Later, you'll create t
 
 ### Plan the Deployment
 
-1. In the DCM control panel above the workspace tabs, select the project **build-data-pipelines-with-snowflake-dcm-projects/DCM_Platform_Demo**.
+1. You should see the DCM control panel in the first tab in the bottom panel. Select the project **DCM_Platform_Demo**.
 2. The `DCM_DEV` target should already be selected (it's the default in the manifest).
 3. Click on the target profile to verify it uses `DCM_PLATFORM_DEV` and the `DEV` templating configuration.
-4. In the manifest file, update the default value for `users` to include your own Snowflake username (e.g., `['MY_USERNAME']`).
+
+> **Important:** Before running a Plan, update `account_identifier` and `users` under the `DCM_DEV` target in `build-data-pipelines-with-snowflake-dcm-projects/DCM_Platform_Demo/manifest.yml` to match your Snowflake account. The last query in `scripts/01_pre_deploy.sql` (step 6) returns both values — copy them from that output.
 
 ![Selecting the Platform project in the DCM control panel](assets/select_platform_project.png)
 
@@ -473,13 +472,13 @@ default_target: DCM_DEV
 
 targets:
   DCM_DEV:
-    account_identifier: MYORG-MY_DEV_ACCOUNT
+    account_identifier: MYORG-MY_DEV_ACCOUNT # <-- Replace with your account identifier
     project_name: DCM_DEMO_2_FINANCE_DEV.PROJECTS.FINANCE_PIPELINE
     project_owner: DCM_DEMO_2_FINANCE_DEV_ADMIN
     templating_config: DEV
 
   DCM_PROD:
-    account_identifier: MYORG-MY_PROD_ACCOUNT
+    account_identifier: MYORG-MY_PROD_ACCOUNT # <-- Replace with your account identifier
     project_name: DCM_DEMO_2_FINANCE.PROJECTS.FINANCE_PIPELINE
     project_owner: DCM_DEMO_2_FINANCE_ADMIN
     templating_config: PROD
@@ -493,8 +492,7 @@ templating:
     DEV:
       env_suffix: "_DEV"
       users:
-        - "GITHUB_ACTIONS_SERVICE_USER"
-        - "INSERT_YOUR_USER"
+        - "INSERT_YOUR_USER" # <-- Replace with your Snowflake username
 
     PROD:
       env_suffix: ""
@@ -639,16 +637,17 @@ The Pipeline project lives in the Finance team's database, which was created by 
 USE ROLE dcm_demo_2_finance_dev_admin;
 
 CREATE DCM PROJECT IF NOT EXISTS dcm_demo_2_finance_dev.projects.finance_pipeline
-    COMMENT = 'for DCM Pipeline Demo - Quickstart 2';
+    COMMENT = 'for DCM Pipeline Demo - Build Data Pipelines Quickstart';
 ```
 
 > **Note:** After running this script, refresh your browser so Snowsight picks up the newly created Pipeline project object.
 
 ### Plan the Deployment
 
-1. In the DCM control panel, select the project **build-data-pipelines-with-snowflake-dcm-projects/DCM_Pipeline_Demo**.
+1. You should see the DCM control panel in the first tab in the bottom panel. Select the project **DCM_Pipeline_Demo**.
 2. Verify the `DCM_DEV` target is selected and it points to `FINANCE_PIPELINE`.
-3. In the manifest file, update the default value for `users` to include your own Snowflake username (e.g., `['MY_USERNAME']`).
+
+> **Important:** Before running a Plan, update `account_identifier` and `users` under the `DCM_DEV` target in `build-data-pipelines-with-snowflake-dcm-projects/DCM_Pipeline_Demo/manifest.yml` to match your Snowflake account — the same values you used for the Platform manifest.
 
 ![Selecting the Pipeline project](assets/select_pipeline_project.png)
 
@@ -659,8 +658,8 @@ Click **Plan** and wait for the definitions to render, compile, and dry-run.
 The plan should show CREATE statements for:
 
 - 2 schemas (`SILVER` and `GOLD`) in `DCM_DEMO_2_FINANCE_DEV`
-- 11 Dynamic Tables in the silver layer
-- 4 Dynamic Tables and 1 view in the gold layer
+- 37 Dynamic Tables in the silver layer
+- 3 Dynamic Tables and 1 view in the gold layer
 - 3 data quality expectations attached to `FACT_PROSPECT`
 
 ### Deploy
