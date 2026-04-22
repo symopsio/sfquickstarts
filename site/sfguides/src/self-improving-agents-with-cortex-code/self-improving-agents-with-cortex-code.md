@@ -189,8 +189,7 @@ Run Agent GPA on your curated dataset. Enter this prompt in Cortex Code:
 ```
 Run an evaluation of SELF_IMPROVING_AGENT_DB.AGENTS.MARKETING_CAMPAIGNS_AGENT
 against the DS_EVAL dataset. Use the default Agent GPA metrics:
-answer_correctness, logical_consistency, groundedness, execution_efficiency,
-and tool_selection. Upload the config to a stage in
+answer_correctness and logical_consistency. Upload the config to a stage in
 SELF_IMPROVING_AGENT_DB.AGENTS and kick off the eval.
 ```
 
@@ -205,11 +204,8 @@ identify which queries scored lowest. What are the common failure patterns?
 
 | Metric | Description |
 |--------|-------------|
-| `answer_correctness` | Is the answer factually right? |
-| `tool_selection` | Did the agent pick the right tool(s)? |
-| `groundedness` | Are claims backed by evidence from tool outputs? |
-| `execution_efficiency` | Was the tool usage minimal and efficient? |
-| `logical_consistency` | Is the reasoning coherent? |
+| `answer_correctness` | How closely the response matches the expected ground truth answer |
+| `logical_consistency` | Measures consistency across agent instructions, planning, and tool calls (reference-free) |
 
 <!-- ------------------------ -->
 
@@ -260,8 +256,7 @@ scores by metric and highlight what improved.
 
 **What to look for:**
 
-- **Overall score improvement**: VERSION$2 should score higher across all metrics
-- **Tool selection gains**: The biggest improvement should be in `tool_selection` — the agent now chains tools correctly
+- **Overall score improvement**: VERSION$2 should score higher across both metrics
 - **No regressions**: VERSION$2 should still handle simple queries just as well as VERSION$1
 
 <!-- ------------------------ -->
@@ -303,7 +298,7 @@ Congratulations! You've built a self-improving AI agent workflow — deploying a
 - How to build a multi-tool Cortex Agent with Cortex Analyst, Cortex Search, stored procedures, web search, and data-to-chart capabilities
 - How to generate observability traces by stress-testing your agent in Snowflake Intelligence
 - How to use Cortex Code to mine agent logs and curate evaluation datasets
-- How to run Agent GPA evaluations with 5 built-in metrics
+- How to run Agent GPA evaluations with built-in metrics
 - How to analyze failure patterns and generate improved orchestration instructions
 - How to validate improvements by comparing VERSION$1 vs VERSION$2 evaluation scores
 - That better instructions — not more tools — are the key lever for agent improvement
@@ -312,7 +307,7 @@ Congratulations! You've built a self-improving AI agent workflow — deploying a
 
 | Concept | Description |
 |---------|-------------|
-| **Agent GPA** | 5-metric evaluation framework measuring correctness, tool selection, groundedness, efficiency, and consistency |
+| **Agent GPA** | Evaluation framework with built-in metrics for answer correctness and logical consistency |
 | **Orchestration Instructions** | The only thing that changes between versions — natural language instructions telling the agent how to route queries and coordinate tools |
 | **Eval Dataset** | Frozen snapshot of queries + ground truth used to score agent versions |
 | **Cortex Code** | AI-powered CLI that mines agent logs, runs evaluations, identifies failures, and generates improved agent instructions |
