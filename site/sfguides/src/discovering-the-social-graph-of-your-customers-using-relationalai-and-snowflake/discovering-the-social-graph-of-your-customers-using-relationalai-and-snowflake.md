@@ -6,7 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/RelationalAI/rai-samples/blob/main/samples/tastybytes-communities/community_detection_RelationalAI_V1.ipynb
+fork repo link: https://www.snowflake.com/en/developers/guides/community-detection-using-relationalai/#0
 
 # Discovering the Social Graph of your Customers using RelationalAI
 <!-- ------------------------ -->
