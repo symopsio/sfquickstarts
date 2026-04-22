@@ -20,13 +20,14 @@ Task graphs (directed acyclic graphs of Tasks) are how most production Snowflake
 
 You'll define a fifteen-task demo graph that shows off every interesting Task feature in one place:
 
-- **Root task with retries and graph-level config** pushed into children via `SYSTEM$GET_TASK_GRAPH_CONFIG`
-- **Finalizer task** that emails an HTML summary of every graph run
+- **Root task with retries, overlap policy, and graph-level config** pushed into children via `SYSTEM$GET_TASK_GRAPH_CONFIG`
+- **Finalizer task** that emails a plain-text JSON summary of every graph run
 - **Serverless task** and **multi-predecessor task** patterns
 - **Stream-conditional** and **return-value-conditional** child tasks
-- **Failing task** + dependent that gets skipped
+- **Failing task with retries** + dependent that gets skipped
 - **DCM-managed target state** — a task deployed as `SUSPENDED` that never runs
 - **DMF quality gate** that routes rows to a target or quarantine table based on data metric function results
+- **Overlap policy** on the root task — the new `OVERLAP_POLICY` parameter gives you granular control over concurrent graph execution
 
 Along the way, you'll see two new DCM early-access features that make Tasks a first-class citizen of the DCM Project model:
 
@@ -44,7 +45,7 @@ Along the way, you'll see two new DCM early-access features that make Tasks a fi
 - How to define every kind of Task feature declaratively with `DEFINE TASK`
 - How to use the new `STARTED | SUSPENDED` target-state property to control task state through DCM deployments
 - How to manage SQL procedures used by tasks with `DEFINE PROCEDURE`
-- How to build a finalizer task that sends a styled HTML email summary for every graph run
+- How to build a finalizer task that sends a plain-text JSON email summary for every graph run
 - How to add a DMF-based quality gate that routes rows to target or quarantine tables
 - How to monitor ongoing health with a serverless failed-task alert
 
@@ -216,7 +217,6 @@ templating:
       user: "INSERT_YOUR_USER"                      # <-- Replace with your Snowflake username
       project_owner_role: "DCM_DEVELOPER"
       notification_recipient: "INSERT_YOUR_EMAIL"   # <-- Replace with your verified email
-      alert_schedule: "60 MINUTE"
 
     PROD:
       env_suffix: ""
@@ -224,11 +224,12 @@ templating:
       project_owner_role: "DCM_PROD_DEPLOYER"
       user: "GITHUB_ACTIONS_SERVICE_USER"
       notification_recipient: "prod_alerts@example.com"
-      alert_schedule: "USING CRON 0 8 * * MON-FRI UTC"
       runtime_multiplier: 10
 ```
 
-Note how templating lets the same definitions produce a DEV graph with an X-SMALL warehouse and a short `runtime_multiplier` of 5, and a PROD graph with a SMALL warehouse and a multiplier of 10. Notification recipients and alert schedules differ per environment too.
+Note how the root task sets [`OVERLAP_POLICY = 'NO_OVERLAP'`](https://docs.snowflake.com/en/release-notes/2026/other/2026-03-13-tasks-overlap-policy) (the default), which ensures each graph run completes before the next one starts. You can change this to `ALLOW_CHILD_OVERLAP` or `ALLOW_ALL_OVERLAP` if your pipeline benefits from concurrent runs.
+
+Note how templating lets the same definitions produce a DEV graph with an X-SMALL warehouse and a short `runtime_multiplier` of 5, and a PROD graph with a SMALL warehouse and a multiplier of 10. Notification recipients differ per environment too.
 
 ### Infrastructure — `sources/definitions/infrastructure.sql`
 
@@ -277,17 +278,15 @@ $$;
 
 ### Functions — `sources/definitions/functions.sql`
 
-Five helper functions, all managed by DCM:
+Three helper functions, all managed by DCM:
 
 - **`RUNTIME_WITH_OUTLIERS`** — randomizes each task's duration so the graph feels realistic, with 1-in-10 outlier runs
 - **`GET_TASK_GRAPH_RUN_SUMMARY`** — returns the current graph run as a JSON array (used by the finalizer)
-- **`HTML_FROM_JSON_TASK_RUNS`** — a Python function that converts that JSON into a styled HTML email table
 - **`GET_ACTIVE_QUALITY_CHECKS`** — a UDTF listing every DMF currently attached to a given table
-- **`CHECK_FARENHEIT_PLAUSIBLE`** — a custom UDMF (defined with `DEFINE DATA METRIC FUNCTION`) flagging temperature values outside `-40..140`
 
 ### Expectations — `sources/definitions/expectations.sql`
 
-DCM manages DMF attachments natively through `ATTACH DATA METRIC FUNCTION`, so the full quality gate — UDMF definitions *and* their column attachments — lives in the DCM Project:
+DCM manages DMF attachments natively through `ATTACH DATA METRIC FUNCTION`, so the quality gate lives in the DCM Project using Snowflake's built-in system DMFs:
 
 ```sql
 ATTACH DATA METRIC FUNCTION SNOWFLAKE.CORE.DUPLICATE_COUNT
@@ -295,10 +294,15 @@ ATTACH DATA METRIC FUNCTION SNOWFLAKE.CORE.DUPLICATE_COUNT
     ON (ROW_ID)
     EXPECTATION NO_DUPLICATE_ROW_IDS (value = 0);
 
-ATTACH DATA METRIC FUNCTION DCM_DEMO_4{{env_suffix}}.PIPELINE.CHECK_FARENHEIT_PLAUSIBLE
+ATTACH DATA METRIC FUNCTION SNOWFLAKE.CORE.NULL_COUNT
     TO TABLE DCM_DEMO_4{{env_suffix}}.PIPELINE.RAW_WEATHER_DATA
-    ON (MAX_TEMP_IN_F)
-    EXPECTATION TEMPS_IN_PLAUSIBLE_RANGE (value = 0);
+    ON (DS)
+    EXPECTATION NO_NULL_DATES (value = 0);
+
+ATTACH DATA METRIC FUNCTION SNOWFLAKE.CORE.NULL_COUNT
+    TO TABLE DCM_DEMO_4{{env_suffix}}.PIPELINE.RAW_WEATHER_DATA
+    ON (ZIPCODE)
+    EXPECTATION NO_NULL_ZIPCODES (value = 0);
 ```
 
 Adding or removing an attachment here changes the `CHECK_DATA_QUALITY` task's behavior on the next deploy (it discovers attached DMFs at runtime via `GET_ACTIVE_QUALITY_CHECKS`) — no manual `ALTER TABLE` required.
@@ -315,8 +319,9 @@ DEFINE TASK DCM_DEMO_4{{env_suffix}}.PIPELINE.DEMO_TASK_1
     SCHEDULE = 'USING CRON 15 8-18 * * MON-FRI CET'
     SUSPEND_TASK_AFTER_NUM_FAILURES = 0
     TASK_AUTO_RETRY_ATTEMPTS = 2
+    OVERLAP_POLICY = 'NO_OVERLAP'
     CONFIG = $${"RUNTIME_MULTIPLIER": {{runtime_multiplier}}}$$
-    COMMENT = 'Root task with retries and a runtime-multiplier config'
+    COMMENT = 'Root task with retries, overlap policy, and a runtime-multiplier config'
     STARTED
 AS
     DECLARE
@@ -328,29 +333,27 @@ AS
     END;
 ```
 
-And the finalizer that closes out every run with an HTML email:
+And the finalizer that closes out every run with a plain-text JSON email:
 
 ```sql
 DEFINE TASK DCM_DEMO_4{{env_suffix}}.PIPELINE.DEMO_FINALIZER
     WAREHOUSE = 'DCM_DEMO_4_WH{{env_suffix}}'
     FINALIZE = DCM_DEMO_4{{env_suffix}}.PIPELINE.DEMO_TASK_1
-    COMMENT = 'Sends an HTML email summary after every graph run'
+    COMMENT = 'Sends a plain-text JSON email summary after every graph run'
     STARTED
 AS
     DECLARE
         MY_ROOT_TASK_ID STRING;
         MY_START_TIME   TIMESTAMP_LTZ;
         SUMMARY_JSON    STRING;
-        SUMMARY_HTML    STRING;
     BEGIN
         MY_ROOT_TASK_ID := (CALL SYSTEM$TASK_RUNTIME_INFO('CURRENT_ROOT_TASK_UUID'));
         MY_START_TIME   := (CALL SYSTEM$TASK_RUNTIME_INFO('CURRENT_TASK_GRAPH_ORIGINAL_SCHEDULED_TIMESTAMP'));
 
         SUMMARY_JSON := (SELECT DCM_DEMO_4{{env_suffix}}.PIPELINE.GET_TASK_GRAPH_RUN_SUMMARY(:MY_ROOT_TASK_ID, :MY_START_TIME));
-        SUMMARY_HTML := (SELECT DCM_DEMO_4{{env_suffix}}.PIPELINE.HTML_FROM_JSON_TASK_RUNS(:SUMMARY_JSON));
 
         CALL SYSTEM$SEND_SNOWFLAKE_NOTIFICATION(
-            SNOWFLAKE.NOTIFICATION.TEXT_HTML(:SUMMARY_HTML),
+            SNOWFLAKE.NOTIFICATION.TEXT_PLAIN(:SUMMARY_JSON),
             SNOWFLAKE.NOTIFICATION.EMAIL_INTEGRATION_CONFIG(
                 'dcm_demo_email_notifications',
                 'DCM Task Graph Run Summary ({{env_suffix}})',
@@ -366,12 +369,13 @@ Feature tour of the remaining tasks:
 | Task | What it demonstrates |
 |:-----|:---------------------|
 | `DEMO_TASK_2`, `DEMO_TASK_4` | Plain child tasks with a return value |
-| `DEMO_TASK_3`, `DEMO_TASK_9` | Calling stored procedures (the `DEFINE PROCEDURE` objects) |
+| `DEMO_TASK_3` | Calling a stored procedure (`DEMO_PROCEDURE_1`) |
 | `DEMO_TASK_5` | Serverless task (no `WAREHOUSE =`) with two predecessors |
 | `DEMO_TASK_6` | Returns a value chosen at random — used downstream as a condition |
 | `DEMO_TASK_7` | Return value is a URL (clickable in Snowsight) |
 | `DEMO_TASK_8` | `WHEN SYSTEM$STREAM_HAS_DATA(...)` — skipped when the stream is empty |
-| `DEMO_TASK_10` | Does not run when its predecessor (`DEMO_TASK_9`) fails |
+| `DEMO_TASK_9` | Calls a procedure that fails ~50% of the time; retries are inherited from the root task's `TASK_AUTO_RETRY_ATTEMPTS`. Watch this in Snowsight to see how retries and failures affect downstream tasks |
+| `DEMO_TASK_10` | Does not run when its predecessor (`DEMO_TASK_9`) fails after exhausting retries |
 | `DEMO_TASK_11` | `WHEN SYSTEM$GET_PREDECESSOR_RETURN_VALUE(...)` — runs conditionally on upstream return |
 | `DEMO_TASK_12` | Self-cancels 1 in 10 runs via `SYSTEM$USER_TASK_CANCEL_ONGOING_EXECUTIONS` |
 | `DEMO_TASK_13` | Two predecessors |
@@ -382,7 +386,7 @@ Plus the quality-gate branch:
 
 | Task | What it demonstrates |
 |:-----|:---------------------|
-| `LOAD_RAW_DATA` | Pulls rows from source into the landing table, occasionally injecting a bad value |
+| `LOAD_RAW_DATA` | Pulls rows from source into the landing table, occasionally injecting duplicate ROW_IDs |
 | `CHECK_DATA_QUALITY` | Iterates through every DMF attached to the landing table and returns pass/fail as its return value |
 | `TRANSFORM_DATA` | Conditional on `CHECK_DATA_QUALITY` return = "passed" — copies rows into the target table |
 | `ISOLATE_DATA_ISSUES` | Conditional on the inverse — moves rows into quarantine |
@@ -472,6 +476,15 @@ EXECUTE TASK dcm_demo_4_dev.pipeline.demo_task_1;
 
 The graph kicks off immediately — you don't have to wait for the CRON schedule.
 
+> **Tip:** You can dynamically override the graph config for a single run with the [`USING CONFIG` clause](https://docs.snowflake.com/en/sql-reference/sql/execute-task). For example, to speed up the demo tasks:
+>
+> ```sql
+> EXECUTE TASK dcm_demo_4_dev.pipeline.demo_task_1
+>     USING CONFIG = '{"RUNTIME_MULTIPLIER": 1}';
+> ```
+>
+> This overrides `RUNTIME_MULTIPLIER` for that one execution without changing the task definition.
+
 <!-- ------------------------ -->
 ## View the Task Graph
 
@@ -481,13 +494,13 @@ Click into the run to see the full graph. You should see:
 
 - **`DEMO_TASK_1`** (root) and **`DEMO_FINALIZER`** both succeeded
 - Most child tasks green; `DEMO_TASK_8` skipped (empty stream) and `DEMO_TASK_11` either ran or skipped depending on `DEMO_TASK_6`'s random return
-- Occasionally `DEMO_TASK_9` fails, causing `DEMO_TASK_10` to be marked as didn't-run
+- Occasionally `DEMO_TASK_9` fails (its procedure errors ~50% of the time); because the root task has `TASK_AUTO_RETRY_ATTEMPTS = 2`, Snowflake retries before marking it failed — if all attempts fail, `DEMO_TASK_10` is skipped
 - `DEMO_TASK_14` and `DEMO_TASK_15` stay suspended — DCM deployed them that way on purpose
 - The quality-gate branch takes one of two paths:
     - `CHECK_DATA_QUALITY` → `TRANSFORM_DATA` (clean rows make it to the target)
     - `CHECK_DATA_QUALITY` → `ISOLATE_DATA_ISSUES` → `NOTIFY_ABOUT_QUALITY_ISSUE` (bad rows quarantined + email sent)
 
-Check your inbox — you should have at least one "DCM Task Graph Run Summary" email with the full HTML table of task statuses, return values, and durations.
+Check your inbox — you should have at least one "DCM Task Graph Run Summary" email with a JSON summary of task statuses, return values, and durations.
 
 Run the graph a few more times (`EXECUTE TASK dcm_demo_4_dev.pipeline.demo_task_1;`) to see the random branches exercise themselves. Each run produces a fresh summary email thanks to the finalizer.
 
@@ -541,7 +554,7 @@ In this guide, you learned how to:
 - **Define a complete task graph as code** using DCM Projects — root, finalizer, conditional branches, retries, and quality gates, all in SQL definition files
 - **Use the `STARTED | SUSPENDED` target-state property** on `DEFINE TASK` so every deployment lands the graph in exactly the state you wanted, no post-scripts required
 - **Manage stored procedures through DCM** with `DEFINE PROCEDURE`, so the procs your tasks call version alongside the tasks themselves
-- **Send HTML email summaries from a finalizer task** using a reusable pair of helper functions (a JSON summary UDF and a Python HTML-generator)
+- **Send plain-text email summaries from a finalizer task** using a reusable JSON summary helper function
 - **Build a DMF-backed quality gate** that uses return-value routing to push clean rows to a target table and bad rows to quarantine — and make the set of checks completely data-driven
 - **Monitor graph health with a serverless alert** that emails you when any task fails
 
@@ -553,6 +566,8 @@ The combination of DCM Projects and Tasks gives you the same production-grade wo
 - [Snowflake Tasks and Task Graphs](https://docs.snowflake.com/en/user-guide/tasks-graphs)
 - [Finalizer Tasks](https://docs.snowflake.com/en/user-guide/tasks-intro#finalizer-task)
 - [Data Metric Functions](https://docs.snowflake.com/en/user-guide/data-quality-intro)
+- [OVERLAP_POLICY for Task Graphs](https://docs.snowflake.com/en/release-notes/2026/other/2026-03-13-tasks-overlap-policy)
+- [EXECUTE TASK with Dynamic Config](https://docs.snowflake.com/en/release-notes/2026/other/2026-01-26-dynamic-task-config)
 - [Alerts and Notifications](https://docs.snowflake.com/en/user-guide/alerts)
 - [Get Started with Snowflake DCM Projects](https://www.snowflake.com/en/developers/guides/get-started-snowflake-dcm-projects/)
 - [Build Data Pipelines with Snowflake DCM Projects](https://www.snowflake.com/en/developers/guides/build-data-pipelines-with-snowflake-dcm-projects/)
