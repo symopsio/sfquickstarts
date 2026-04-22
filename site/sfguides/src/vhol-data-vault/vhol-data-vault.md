@@ -19,7 +19,7 @@ Those who have been using the Data Vault approach don’t need to change much ot
 
 ### Data Vault on Snowflake
 
-There have been numerous [blog posts](/blog/tips-for-optimizing-the-data-vault-architecture-on-snowflake/), user groups, and webinars over the last few years, discussing the best practices and customer success stories around implementing Data Vaults on Snowflake.  So the question now is how do you build a Data Vault on Snowflake that has real-time or near real-time data streaming into it.
+There have been numerous [blog posts](/blog/tips-for-optimizing-the-data-vault-architecture-on-snowflake/), user groups, and webinars over the years, discussing the best practices and customer success stories around implementing Data Vaults on Snowflake.  So the question now is how do you build a Data Vault on Snowflake that has real-time or near real-time continuous data streaming into it.
 
 Luckily, streaming data is one of the [use-cases](/cloud-data-platform/) that Snowflake was built to support, so we have many features to help us achieve this goal. **This guide is an extended version of the [article](https://datavaultalliance.com/news/building-a-real-time-data-vault-in-snowflake/) posted on Data Vault Alliance website, now including practical steps to build an example of real-time Data Vault feed on Snowflake. Join us on simple-to-follow steps to see it in action.**
 
@@ -90,7 +90,7 @@ For this guide we are going to use a subset of objects from [TPC-H](https://docs
 
 ### Static Reference Data
 
-Let's start with the static reference data:
+Let's start with the static reference data. If you've just completed the [Defensible Analytics using Data Vault and Snowflake](https://www.snowflake.com/en/developers/guides/defensible-analytics-using-data-vault-and-snowflake/) guide, create a new SQL file in Workspaces named DVRealTime.sql.
 
 > **Data Vault audit columns:** Every entity in this guide carries two mandatory audit columns. `ldts` (*Load Date Time Stamp*) is the immutable timestamp of when the row was loaded into the vault — set once on arrival and never changed. `rsrc` (*Record Source*) identifies the originating system or feed. Together they ensure every record is fully traceable: you can always answer *when* did this arrive and *where* did it come from, satisfying both auditability and compliance requirements.
 
