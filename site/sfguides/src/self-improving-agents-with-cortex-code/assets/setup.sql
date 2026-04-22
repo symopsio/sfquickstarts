@@ -2132,52 +2132,13 @@ GRANT USAGE ON SNOWFLAKE INTELLIGENCE SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT TO R
 USE ROLE SELF_IMPROVING_AGENT_ROLE;
 
 
--- ====================================================================
--- 12. EVAL DATA (queries with ground truth for later evaluation)
--- ====================================================================
-
-CREATE OR REPLACE TABLE EVALSET_8Q (
-    INPUT_QUERY TEXT,
-    GROUND_TRUTH_DATA VARIANT
-);
-
-INSERT INTO EVALSET_8Q
-SELECT 'What campaigns have the highest ROI?', PARSE_JSON('{"ground_truth_invocations": [{"tool_name": "query_performance_metrics"}], "ground_truth_output": "The agent should query campaign performance data and rank campaigns by average ROI percentage, presenting the top campaigns with their ROI values."}')
-UNION ALL SELECT 'What was customer feedback around our back to school campaign', PARSE_JSON('{"ground_truth_invocations": [{"tool_name": "search_campaign_content"}], "ground_truth_output": "The agent should search for back to school campaign feedback showing satisfaction scores from Students (4.70/5) and Parents (4.50/5) segments with specific comments and improvement suggestions."}')
-UNION ALL SELECT 'Are there any temporal trends around revenue', PARSE_JSON('{"ground_truth_invocations": [{"tool_name": "query_performance_metrics"}], "ground_truth_output": "The agent should analyze revenue over time showing daily, weekly, and monthly trends with aggregated revenue figures."}')
-UNION ALL SELECT 'What was the performance of the flash sale campaign?', PARSE_JSON('{"ground_truth_invocations": [{"tool_name": "query_performance_metrics"}], "ground_truth_output": "The Flash Sale - 48 Hours campaign: Total Revenue $99,182, 3-day duration, with ROI, conversion, click, and impression metrics."}')
-UNION ALL SELECT 'Which channels yield the highest clickrates?', PARSE_JSON('{"ground_truth_invocations": [{"tool_name": "query_performance_metrics"}], "ground_truth_output": "Search yields highest click rate at 4.94%, followed by email at 3.93%, display at 3.00%, and social at 2.44%."}')
-UNION ALL SELECT 'What can you help me with?', PARSE_JSON('{"ground_truth_invocations": [], "ground_truth_output": "The agent should describe its capabilities: campaign performance analysis (metrics, comparisons, trends), campaign content insights (feedback, A/B tests, strategy), and report generation. No tool calls needed."}')
-UNION ALL SELECT 'Generate a report for campaign #12', PARSE_JSON('{"ground_truth_invocations": [{"tool_name": "generate_campaign_report"}, {"tool_name": "query_performance_metrics"}], "ground_truth_output": "The agent should generate an HTML report for campaign 12 and provide key performance insights from the report data."}')
-UNION ALL SELECT 'How many iphones did we sell last year', PARSE_JSON('{"ground_truth_invocations": [], "ground_truth_output": "The agent should explain it does not have product sales data and redirect the user to its actual capabilities around marketing campaign analytics."}');
-
-CREATE OR REPLACE TABLE HARD_QUERIES_STAGING (
-    DAY_NUMBER INT,
-    INPUT_QUERY TEXT,
-    GROUND_TRUTH_DATA VARCHAR
-);
-
-INSERT INTO HARD_QUERIES_STAGING VALUES
-(1, 'What campaigns had the highest ROI and what did customers say about them?', '{"ground_truth_invocations": [{"tool_name": "query_performance_metrics"}, {"tool_name": "search_campaign_content"}], "ground_truth_output": "The agent should FIRST query performance metrics to identify top ROI campaigns, THEN search for customer feedback on those specific campaigns. Must combine quantitative ROI rankings with qualitative customer comments."}'),
-(1, 'Compare the budget efficiency of email versus social campaigns and include any A/B test insights', '{"ground_truth_invocations": [{"tool_name": "query_performance_metrics"}, {"tool_name": "search_campaign_content"}], "ground_truth_output": "The agent should query budget metrics (revenue/budget ratio, CPC, CPA) for email vs social channels, then search for A/B test notes from campaigns in those channels. Must synthesize both data sources."}'),
-(1, 'Which campaign type generates the most revenue per dollar of budget?', '{"ground_truth_invocations": [{"tool_name": "query_performance_metrics"}], "ground_truth_output": "The agent should calculate revenue-to-budget ratio by campaign_type, ranking types by efficiency. Should show total revenue, total budget, and the ratio for each type."}'),
-(1, 'What are our top 3 campaigns by conversions and what marketing strategies did they use?', '{"ground_truth_invocations": [{"tool_name": "query_performance_metrics"}, {"tool_name": "search_campaign_content"}], "ground_truth_output": "The agent should first query for top 3 campaigns ranked by total conversions, then search for their marketing strategies, copy, and A/B test results. Response must name specific campaigns and link metrics to strategy."}'),
-(1, 'Show me the engagement rate trends over time and explain what content strategies drove the best engagement', '{"ground_truth_invocations": [{"tool_name": "query_performance_metrics"}, {"tool_name": "search_campaign_content"}], "ground_truth_output": "The agent should query engagement rates over time (monthly or weekly averages), then search for campaign content and strategies from high-engagement periods. Must connect quantitative trends to qualitative strategy insights."}'),
-(2, 'Tell me about our best campaign', '{"ground_truth_invocations": [{"tool_name": "query_performance_metrics"}, {"tool_name": "search_campaign_content"}], "ground_truth_output": "The query is ambiguous - best by what metric? The agent should either ask for clarification OR default to a comprehensive analysis using multiple metrics (ROI, revenue, conversions) and include qualitative success factors. Must not pick a single metric arbitrarily without explanation."}'),
-(2, 'What campaigns are underperforming and what should we change?', '{"ground_truth_invocations": [{"tool_name": "query_performance_metrics"}, {"tool_name": "search_campaign_content"}], "ground_truth_output": "The agent should define underperformance (e.g., below-average ROI or negative ROI), query to identify those campaigns, then search for their content and feedback to suggest specific improvements. Must provide actionable recommendations grounded in data."}'),
-(2, 'How do campaigns with negative customer feedback compare in performance to those with positive feedback?', '{"ground_truth_invocations": [{"tool_name": "search_campaign_content"}, {"tool_name": "query_performance_metrics"}], "ground_truth_output": "The agent should first search feedback to identify campaigns with low vs high satisfaction scores, then query performance metrics for those specific campaigns to compare. Must segment by feedback sentiment and show performance differences."}'),
-(2, 'What should we do differently next quarter based on this data?', '{"ground_truth_invocations": [{"tool_name": "query_performance_metrics"}, {"tool_name": "search_campaign_content"}], "ground_truth_output": "The agent should analyze overall performance trends, identify top and bottom performers, review customer feedback themes, and synthesize into forward-looking recommendations. Must ground all suggestions in specific data points."}'),
-(2, 'Compare our seasonal campaigns to our always-on campaigns - which strategy is more effective?', '{"ground_truth_invocations": [{"tool_name": "query_performance_metrics"}, {"tool_name": "search_campaign_content"}], "ground_truth_output": "The agent should query metrics grouped by campaign_type (Seasonal vs others like Brand Building, Lead Nurturing) and compare ROI, revenue, and engagement. Then search for strategy insights from each type. Must acknowledge that effectiveness depends on the metric chosen."}');
-
-
-
 
 
 -- ====================================================================
 
 
 -- ====================================================================
--- 13. FINAL VALIDATION
+-- 12. FINAL VALIDATION
 -- ====================================================================
 
 SHOW VERSIONS IN AGENT MARKETING_CAMPAIGNS_AGENT;
@@ -2185,7 +2146,7 @@ SHOW VERSIONS IN AGENT MARKETING_CAMPAIGNS_AGENT;
 SELECT
 $$
 =====================================================
-  LAB SETUP COMPLETE
+  SETUP COMPLETE
 =====================================================
 
 Database:  SELF_IMPROVING_AGENT_DB
@@ -2194,7 +2155,7 @@ Role:      SELF_IMPROVING_AGENT_ROLE
 Warehouse: COMPUTE_WH
 
 Agent: MARKETING_CAMPAIGNS_AGENT
-  VERSION$1 (alias: baseline) - minimal instructions
+  VERSION$1 (alias: baseline) - production agent
   LIVE - mutable working copy
 
 Tools:
@@ -2204,13 +2165,9 @@ Tools:
   4. web_search                 (Web Search)
   5. data_to_chart              (Visualization)
 
-Eval Data:
-  EVALSET_8Q           8 baseline eval queries
-  HARD_QUERIES_STAGING 10 harder queries (Day 1 + Day 2)
-
 Next Steps:
   1. Open the agent in Snowflake Intelligence (AI & ML > Agents)
-  2. Try the suggested questions to generate traces
-  3. Open the README for step-by-step lab instructions.
+  2. Stress-test with hard queries to generate failure traces
+  3. Use Cortex Code to mine logs, evaluate, and optimize
 =====================================================
 $$ AS setup_status;

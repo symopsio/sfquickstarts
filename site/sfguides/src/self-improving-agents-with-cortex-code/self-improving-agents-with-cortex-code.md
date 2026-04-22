@@ -12,15 +12,16 @@ tags: Cortex Agents, Evaluations, AI, LLM, Snowflake Cortex, Cortex Code, Agent 
 
 ## Overview
 
-Building AI agents is just the beginning — understanding how well they perform and systematically improving them is what separates prototypes from production systems. In this guide, you'll build a marketing analytics agent, evaluate it with Agent GPA, analyze its failures, and optimize its instructions through iterative improvement — all driven by Cortex Code.
+Building AI agents is just the beginning — understanding how well they perform and systematically improving them is what separates prototypes from production systems. In this guide, you'll build a marketing analytics agent, deploy it to production, stress-test it with hard queries, then use Cortex Code to mine failures from logs, evaluate with Agent GPA, and optimize the agent's instructions.
 
-By the end, you'll have a versioned agent that gets measurably better with each round of evaluation and optimization.
+By the end, you'll have a versioned agent with measurably better performance — and a repeatable workflow for continuous improvement.
 
-| Round | Focus |
-|-------|-------|
-| Baseline | Test the agent, curate traces into an eval dataset, run first evaluation |
-| Round 1 | Add multi-tool routing queries, optimize instructions, measure improvement |
-| Round 2 | Add edge cases + ambiguity, optimize again, build score matrix |
+| Step | What You'll Do |
+|------|---------------|
+| Setup | Deploy a production agent with 5 tools (VERSION$1) |
+| Stress Test | Run hard queries in Snowflake Intelligence to generate failure traces |
+| Evaluate | Mine logs, curate an eval dataset, run Agent GPA baseline |
+| Optimize | Analyze failures, generate improved instructions (VERSION$2), validate with a second eval |
 
 ### Architecture
 
@@ -46,19 +47,19 @@ By the end, you'll have a versioned agent that gets measurably better with each 
 
 - How to build a Cortex Agent with multiple tool types (Cortex Analyst, Cortex Search, stored procedures, web search, data-to-chart)
 - How to use Snowflake Intelligence to interact with your agent and generate observability traces
-- How to curate evaluation datasets from real agent interactions using Cortex Code
+- How to use Cortex Code to mine agent logs and curate evaluation datasets
 - How to run Agent GPA evaluations with built-in metrics
 - How to analyze failure patterns and generate improved orchestration instructions
-- How to build a score matrix comparing agent versions across datasets
+- How to validate improvements by comparing evaluation scores across agent versions
 
 ### What You'll Build
 
 A complete agent optimization workflow:
 
-- A marketing campaigns agent with 5 tools and versioned configurations
-- Evaluation datasets curated from real agent interactions
-- Multiple agent versions with progressively better orchestration instructions
-- A score matrix demonstrating measurable improvement across versions
+- A marketing campaigns agent with 5 tools deployed as VERSION$1
+- An evaluation dataset curated from real agent interaction logs
+- An optimized VERSION$2 with improved orchestration instructions
+- Before/after evaluation results demonstrating measurable improvement
 
 ### What You'll Need
 
@@ -75,7 +76,7 @@ A complete agent optimization workflow:
 
 ## Install Cortex Code
 
-Cortex Code is an AI-powered CLI that you'll use throughout this guide to analyze evaluation results, identify failure patterns, and generate improved agent instructions.
+Cortex Code is an AI-powered CLI that you'll use throughout this guide to mine agent logs, run evaluations, analyze failures, and generate improved agent instructions.
 
 Install it via pip:
 
@@ -102,51 +103,44 @@ Open a Snowflake worksheet in Snowsight and run the entire `setup.sql` file. Thi
 - Database `SELF_IMPROVING_AGENT_DB` with schema `AGENTS`
 - 4 data tables (25 campaigns, ~1578 performance records, content, feedback)
 - Semantic view, Cortex Search service, report generation procedure
-- The agent `MARKETING_CAMPAIGNS_AGENT` (VERSION$1 — no orchestration instructions)
-- Eval data tables (8 baseline queries + 10 harder queries for later rounds)
+- The production agent `MARKETING_CAMPAIGNS_AGENT` (VERSION$1)
 
 Verify setup succeeded — the final statement should print a success banner.
 
 <!-- ------------------------ -->
 
-## Test the Agent in Snowflake Intelligence
+## Stress-Test the Agent in Snowflake Intelligence
 
 Open the agent in Snowflake Intelligence:
 
 1. Go to [ai.snowflake.com](https://ai.snowflake.com) or in Snowsight select **AI & ML > Agents**
 2. Select **MARKETING_CAMPAIGNS_AGENT**
 
-The agent has VERSION$1 with no orchestration instructions. Try a mix of easy and hard queries to generate traces. Copy-paste these one at a time:
+The agent is deployed as VERSION$1. Your goal is to generate a mix of successful and failing traces by asking progressively harder questions. Copy-paste these one at a time:
 
-### Good single-tool queries
-
-The agent should handle these well:
+### Simple queries (agent should handle these well)
 
 - `What is the total spend across all campaigns?`
 - `What content was used in the Summer Sale campaign?`
 - `Which campaign had the highest ROI?`
 
-### Multi-step chained queries
-
-These require 3+ tools in sequence — the agent will miss steps:
+### Multi-tool queries (requires 3+ tools — agent will miss steps)
 
 - `Which campaign had the highest ROI and what did customers say about it? Generate a report for that campaign too.`
 - `Find our worst performing campaigns, look up what customers complained about, compare to industry benchmarks, and recommend fixes`
 
-### Vague / underspecified queries
-
-The agent won't know where to start:
+### Complex synthesis queries (agent won't know where to start)
 
 - `For each of our top 5 campaigns by revenue, show me the customer feedback and whether the A/B test results support scaling them up`
 - `Build me a quarterly business review — top campaigns, underperformers, customer sentiment trends, and how we stack up against competitors`
 
-Notice the patterns: single-tool queries work okay, but the agent fails on multi-tool coordination and ambiguity. These traces will be the raw material for building eval datasets.
+Notice the patterns: simple queries work fine, but the agent fails on multi-tool coordination and complex synthesis. These traces are now logged and ready to mine.
 
 <!-- ------------------------ -->
 
-## Curate an Eval Dataset
+## Curate an Eval Dataset from Logs
 
-Now open Cortex Code and use it to curate the traces from the previous step into an evaluation dataset:
+Now open Cortex Code to mine the agent's interaction logs and curate an evaluation dataset:
 
 ```bash
 cortex --bypass
@@ -158,30 +152,30 @@ Then enter the following prompt:
 Use the dataset-curation skill to pull observability traces for
 SELF_IMPROVING_AGENT_DB.AGENTS.MARKETING_CAMPAIGNS_AGENT and curate
 an evaluation dataset. Include a mix of:
-- Simple single-tool queries the agent handles well
+- Simple queries the agent handles well
 - Multi-tool queries where it struggles
-- Edge cases like ambiguous or out-of-scope questions
+- Complex synthesis queries it fails on
 
 For each query, include ground truth with expected tool invocations.
 Store it in SELF_IMPROVING_AGENT_DB.AGENTS and register it as an
-evaluation dataset called DS_BASELINE.
+evaluation dataset called DS_EVAL.
 ```
 
 Cortex Code will:
 
-1. Query the observability traces
+1. Query the observability traces from the previous step
 2. Help you select and annotate queries with ground truth
 3. Create an eval table and register it via `SYSTEM$CREATE_EVALUATION_DATASET`
 
 <!-- ------------------------ -->
 
-## Baseline Evaluation
+## Run Baseline Evaluation
 
 Run Agent GPA on your curated dataset. Enter this prompt in Cortex Code:
 
 ```
 Run an evaluation of SELF_IMPROVING_AGENT_DB.AGENTS.MARKETING_CAMPAIGNS_AGENT
-against the DS_BASELINE dataset. Use the default Agent GPA metrics:
+against the DS_EVAL dataset. Use the default Agent GPA metrics:
 answer_correctness, logical_consistency, groundedness, execution_efficiency,
 and tool_selection. Upload the config to a stage in
 SELF_IMPROVING_AGENT_DB.AGENTS and kick off the eval.
@@ -190,7 +184,7 @@ SELF_IMPROVING_AGENT_DB.AGENTS and kick off the eval.
 Once the eval completes, analyze the results:
 
 ```
-Show me the baseline evaluation results. Break down scores by metric and
+Show me the evaluation results. Break down scores by metric and
 identify which queries scored lowest. What are the common failure patterns?
 ```
 
@@ -206,14 +200,14 @@ identify which queries scored lowest. What are the common failure patterns?
 
 <!-- ------------------------ -->
 
-## Round 1 — Optimize Multi-Tool Routing
+## Optimize and Validate
 
 ### Analyze failures
 
 Enter this prompt in Cortex Code:
 
 ```
-Dig into the lowest-scoring queries from the baseline eval of
+Dig into the lowest-scoring queries from the eval of
 SELF_IMPROVING_AGENT_DB.AGENTS.MARKETING_CAMPAIGNS_AGENT. Show me the
 actual tool calls the agent made vs what ground truth expected. What
 patterns do you see?
@@ -225,12 +219,12 @@ patterns do you see?
 - Report generation fails because the agent doesn't look up `campaign_id` first
 - Vague answers that don't combine data from multiple sources
 
-### Optimize with Cortex Code
+### Generate improved instructions
 
 ```
 Based on the failure analysis, generate improved orchestration instructions
 for SELF_IMPROVING_AGENT_DB.AGENTS.MARKETING_CAMPAIGNS_AGENT that fix
-multi-tool routing. The instructions should tell the agent when to use
+the identified issues. The instructions should tell the agent when to use
 multiple tools and in what order. Apply the changes and commit as VERSION$2.
 ```
 
@@ -242,72 +236,30 @@ Cortex Code will:
 
 **What changes:** Only the `instructions.orchestration` field. Tools, tool_resources, and models stay identical. Better instructions are the only lever.
 
-### Add harder queries and re-evaluate
+### Validate with a second eval
 
 ```
-There are multi-tool routing queries staged in
-SELF_IMPROVING_AGENT_DB.AGENTS.HARD_QUERIES_STAGING (DAY_NUMBER = 1).
-Create an expanded eval dataset that includes the baseline queries plus
-these 5 new ones. Register it as DS_ROUND1 and run the eval of
-SELF_IMPROVING_AGENT_DB.AGENTS.MARKETING_CAMPAIGNS_AGENT against it
-for both VERSION$1 and VERSION$2 so we can compare.
+Run the evaluation of SELF_IMPROVING_AGENT_DB.AGENTS.MARKETING_CAMPAIGNS_AGENT
+against DS_EVAL again, this time for VERSION$2. Compare the results
+against the VERSION$1 baseline — show me a side-by-side comparison of
+scores by metric and highlight what improved.
 ```
+
+**What to look for:**
+
+- **Overall score improvement**: VERSION$2 should score higher across all metrics
+- **Tool selection gains**: The biggest improvement should be in `tool_selection` — the agent now chains tools correctly
+- **No regressions**: VERSION$2 should still handle simple queries just as well as VERSION$1
 
 <!-- ------------------------ -->
 
-## Round 2 — Edge Cases & Ambiguity
+## Review
 
-### Preview Day 2 queries
-
-```
-Show me the Day 2 queries from SELF_IMPROVING_AGENT_DB.AGENTS.HARD_QUERIES_STAGING.
-These test edge cases and ambiguity — things like "Tell me about our best
-campaign" where "best" is undefined, or "What should we do next quarter?"
-which requires synthesis.
-```
-
-### Evaluate and optimize
+Ask Cortex Code to summarize the full optimization:
 
 ```
-Create the full 18-query dataset (baseline + day 1 + day 2 queries from
-SELF_IMPROVING_AGENT_DB.AGENTS.HARD_QUERIES_STAGING), register it as
-DS_ROUND2, evaluate SELF_IMPROVING_AGENT_DB.AGENTS.MARKETING_CAMPAIGNS_AGENT
-VERSION$2 against it, analyze the new failures, and generate VERSION$3
-instructions that handle ambiguous queries and graceful degradation
-without regressing on the Day 1 fixes.
-```
-
-### Build the score matrix
-
-```
-Run all versions (V1, V2, V3) of
-SELF_IMPROVING_AGENT_DB.AGENTS.MARKETING_CAMPAIGNS_AGENT against all
-datasets (DS_BASELINE, DS_ROUND1, DS_ROUND2) and build a score matrix
-showing improvement across versions and datasets. Visualize the results.
-```
-
-**What to look for in the matrix:**
-
-```
-              |  Baseline |  +Multi   |  +Edge
-  V1 (base)  |  0.xxx    |  0.xxx    |  0.xxx
-  V2 (day 1) |  0.xxx    |  0.xxx    |  0.xxx
-  V3 (day 2) |  0.xxx    |  0.xxx    |  0.xxx
-```
-
-- **Diagonal improvement**: V2 should beat V1 on multi-tool queries; V3 should beat V2 on edge cases
-- **No regressions**: V3 should not score worse than V1 on baseline queries
-- **Generalization**: Later versions handle harder queries without losing ground on easy ones
-
-<!-- ------------------------ -->
-
-## Review the Journey
-
-Ask Cortex Code to summarize the full optimization journey:
-
-```
-Show me a summary of everything we did — all agent versions, what changed
-in each version's instructions, the eval runs, and the score progression.
+Show me a summary of everything we did — both agent versions, what changed
+in the instructions, the eval runs, and the score comparison.
 ```
 
 You can also inspect agent versions directly:
@@ -318,12 +270,12 @@ SHOW VERSIONS IN AGENT SELF_IMPROVING_AGENT_DB.AGENTS.MARKETING_CAMPAIGNS_AGENT;
 
 ### Explore Observability Traces
 
-Ask Cortex Code to dig into what the agent actually did during evaluations:
+Ask Cortex Code to dig into what the agent actually did:
 
 ```
 Show me the observability traces for
 SELF_IMPROVING_AGENT_DB.AGENTS.MARKETING_CAMPAIGNS_AGENT. Find an example
-where V1 failed and V3 succeeded on the same query — compare the tool
+where V1 failed and V2 succeeded on the same query — compare the tool
 calls and reasoning.
 ```
 
@@ -331,16 +283,16 @@ calls and reasoning.
 
 ## Conclusion and Resources
 
-Congratulations! You've built a self-improving AI agent workflow that demonstrates measurable improvement through iterative evaluation and optimization.
+Congratulations! You've built a self-improving AI agent workflow — deploying a production agent, stress-testing it, mining failures from logs, evaluating with Agent GPA, and validating that improved instructions lead to measurably better performance.
 
 ### What You Learned
 
 - How to build a multi-tool Cortex Agent with Cortex Analyst, Cortex Search, stored procedures, web search, and data-to-chart capabilities
-- How to generate observability traces by interacting with your agent in Snowflake Intelligence
-- How to use Cortex Code to curate evaluation datasets from real agent interactions
+- How to generate observability traces by stress-testing your agent in Snowflake Intelligence
+- How to use Cortex Code to mine agent logs and curate evaluation datasets
 - How to run Agent GPA evaluations with 5 built-in metrics
 - How to analyze failure patterns and generate improved orchestration instructions
-- How to build a score matrix comparing agent versions across progressively harder datasets
+- How to validate improvements by comparing VERSION$1 vs VERSION$2 evaluation scores
 - That better instructions — not more tools — are the key lever for agent improvement
 
 ### Key Concepts
@@ -350,8 +302,7 @@ Congratulations! You've built a self-improving AI agent workflow that demonstrat
 | **Agent GPA** | 5-metric evaluation framework measuring correctness, tool selection, groundedness, efficiency, and consistency |
 | **Orchestration Instructions** | The only thing that changes between versions — natural language instructions telling the agent how to route queries and coordinate tools |
 | **Eval Dataset** | Frozen snapshot of queries + ground truth used to score agent versions |
-| **Score Matrix** | Versions x Datasets grid showing measurable improvement |
-| **Cortex Code** | AI-powered CLI that analyzes eval results, identifies failures, and generates improved agent instructions |
+| **Cortex Code** | AI-powered CLI that mines agent logs, runs evaluations, identifies failures, and generates improved agent instructions |
 
 ### Related Resources
 
