@@ -110,6 +110,7 @@ GRANT CREATE INTEGRATION ON ACCOUNT TO ROLE dcm_developer;
 GRANT EXECUTE MANAGED TASK ON ACCOUNT TO ROLE dcm_developer;
 GRANT EXECUTE TASK ON ACCOUNT TO ROLE dcm_developer;
 GRANT EXECUTE ALERT ON ACCOUNT TO ROLE dcm_developer;
+GRANT EXECUTE MANAGED ALERT ON ACCOUNT TO ROLE dcm_developer;
 GRANT MANAGE GRANTS ON ACCOUNT TO ROLE dcm_developer;
 GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO ROLE dcm_developer;
 ```
@@ -173,6 +174,16 @@ SELECT
 ```
 
 Keep these values — you'll paste them into `manifest.yml` and the `notification_recipient` field in the next section.
+
+### 8. Verify Your Email Address
+
+The finalizer task, quality-issue notification, and failed-task alert all send email through `SYSTEM$SEND_SNOWFLAKE_NOTIFICATION`. This only works if the recipient email is **verified** on the Snowflake account.
+
+1. Click your **username** (bottom-left circle) in Snowsight, then select **Settings** → **Profile**.
+2. Under **Email**, confirm your address shows a ✅ verified badge.
+3. If not, click **Verify** and follow the link sent to your inbox.
+
+> **If you skip this step**, any task or alert that sends a notification will fail with: *"Email recipients at indexes [1] are not allowed."*
 
 > **Important:** Before running Plan & Deploy, update three values in `DCM_Projects_Tasks/manifest.yml`: set `account_identifier` on the `DCM_DEV` target to the identifier you just got, set `user` under `templating.configurations.DEV` to your username, and set `notification_recipient` to your verified Snowflake user email. The values with a `# <-- Replace with ...` comment flag where to change things.
 
@@ -403,7 +414,13 @@ With the manifest updated (account identifier, user, notification recipient) and
 
 1. Open `DCM_Projects_Tasks/manifest.yml` in the Workspaces file explorer.
 2. At the bottom of the editor, confirm the project selector shows `DCM_DEMO.PROJECTS.DCM_PROJECT_DEV` and the target shows `DCM_DEV`.
+
+![Snowsight target selector showing DCM_DEV (default, green) and DCM_PROD](assets/select_project.png)
+
 3. Click **Plan**. Review the changeset — you should see the warehouse, database, schema, tables, procedures, functions, and every task listed as `CREATE`.
+
+![Plan output showing 37 entities — 36 CREATE and 1 ALTER](assets/plan_results.png)
+
 4. Click **Deploy**.
 
 ### Option B: Snowflake CLI
@@ -440,7 +457,7 @@ CREATE OR REPLACE ALERT dcm_demo_4_dev.pipeline.failed_task_alert
     SCHEDULE = '60 MINUTE'
     IF (EXISTS (
         SELECT NAME, SCHEMA_NAME
-        FROM TABLE(INFORMATION_SCHEMA.TASK_HISTORY(
+        FROM TABLE(DCM_DEMO_4_DEV.INFORMATION_SCHEMA.TASK_HISTORY(
             SCHEDULED_TIME_RANGE_START => (GREATEST(
                 TIMEADD('DAY', -7, CURRENT_TIMESTAMP),
                 SNOWFLAKE.ALERT.LAST_SUCCESSFUL_SCHEDULED_TIME())),
@@ -457,7 +474,7 @@ CREATE OR REPLACE ALERT dcm_demo_4_dev.pipeline.failed_task_alert
                 SNOWFLAKE.NOTIFICATION.EMAIL_INTEGRATION_CONFIG(
                     'dcm_demo_email_notifications',
                     'DCM Pipeline — Failed Task Alert',
-                    ARRAY_CONSTRUCT('INSERT_YOUR_EMAIL'),
+                    ARRAY_CONSTRUCT('INSERT_YOUR_EMAIL'),   -- <-- Replace with your verified email
                     NULL, NULL));
         END;
 
@@ -465,6 +482,8 @@ ALTER ALERT dcm_demo_4_dev.pipeline.failed_task_alert RESUME;
 ```
 
 The alert runs **serverless** (no warehouse specified), checks for any failed task in the last interval, and emails the list if the condition is true. `SNOWFLAKE.ALERT.GET_CONDITION_QUERY_UUID()` gives you the result of the condition query so you don't have to re-run it to build the message.
+
+> **Why is the email here *and* in `manifest.yml`?** DCM does not manage alerts, so this companion script can't use `{{notification_recipient}}`. The DCM-managed tasks (finalizer, quality-issue notification) pull the email from the manifest at deploy time, while the alert needs it hard-coded in the SQL. If you change your notification email, update both places.
 
 ### 3. Seed the Source Table and Run the Graph
 
@@ -490,7 +509,11 @@ The graph kicks off immediately — you don't have to wait for the CRON schedule
 
 Navigate to **Monitoring → Task History** in Snowsight. Filter by database `DCM_DEMO_4_DEV` and you'll see the run you just triggered.
 
-Click into the run to see the full graph. You should see:
+Click into the run to see the full graph:
+
+![Task graph DAG in Snowsight showing 16 tasks with succeeded, failed, skipped, and did-not-run states](assets/tasks_dag.png)
+
+You should see:
 
 - **`DEMO_TASK_1`** (root) and **`DEMO_FINALIZER`** both succeeded
 - Most child tasks green; `DEMO_TASK_8` skipped (empty stream) and `DEMO_TASK_11` either ran or skipped depending on `DEMO_TASK_6`'s random return
@@ -500,9 +523,16 @@ Click into the run to see the full graph. You should see:
     - `CHECK_DATA_QUALITY` → `TRANSFORM_DATA` (clean rows make it to the target)
     - `CHECK_DATA_QUALITY` → `ISOLATE_DATA_ISSUES` → `NOTIFY_ABOUT_QUALITY_ISSUE` (bad rows quarantined + email sent)
 
-Check your inbox — you should have at least one "DCM Task Graph Run Summary" email with a JSON summary of task statuses, return values, and durations.
+Check your inbox — you should see **two kinds of notification email** from this quickstart:
 
-Run the graph a few more times (`EXECUTE TASK dcm_demo_4_dev.pipeline.demo_task_1;`) to see the random branches exercise themselves. Each run produces a fresh summary email thanks to the finalizer.
+| Email subject | Sent by | When it fires |
+|---|---|---|
+| **DCM Task Graph Run Summary (_DEV)** | `DEMO_FINALIZER` — a DCM-managed finalizer task | After **every** graph run, with a JSON summary of task statuses, return values, and durations |
+| **DCM Pipeline — Failed Task Alert** | `FAILED_TASK_ALERT` — the serverless alert in `02_post_deploy.sql` | Every 60 minutes, **only** when at least one task failed since the last check |
+
+The finalizer gives you per-run detail; the alert is a background safety net that catches failures even if the finalizer itself errors out.
+
+Run the graph a few more times (`EXECUTE TASK dcm_demo_4_dev.pipeline.demo_task_1;`) to see the random branches exercise themselves. Each run produces a fresh summary email thanks to the finalizer. To test the alert on demand, run `EXECUTE ALERT dcm_demo_4_dev.pipeline.failed_task_alert;`.
 
 <!-- ------------------------ -->
 ## Iterate on the Graph Through DCM
