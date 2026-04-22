@@ -6,7 +6,7 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/optimizing-marketing-budget-using-snowpark-ml-in-hex-notebooks
+fork repo link: https://app.hex.tech/hex-public/app/Snowpark-ML-Stored-Procedure-Tutorial-56cefc5A6nkt4BjPNTsRlr/latest
 
 # Optimizing Marketing Budget using Snowpark ML
 <!-- ------------------------ -->
