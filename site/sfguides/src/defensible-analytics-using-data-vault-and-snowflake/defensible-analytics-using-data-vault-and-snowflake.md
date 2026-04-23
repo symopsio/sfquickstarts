@@ -63,7 +63,7 @@ Architecturally, we will consider the following Data Vault 2.1 zones:
 - **Enterprise Memory Zone**: where data become subject-oriented, integrated by business key, time-variant and non-volatile. This is where the data vault modeling patterns -- such as hubs, links, and satellites -- begin to be applied. Data enters the raw vault, sparsely built, where only hard business rules are applied, loading all records received from source.
 - **Information Delivery Zone**: a collection of consumer-oriented models, designed to inform decision-making processes. This can be implemented as a set (or multiple sets) of views. It is common to see the use of dimensional models (facts and dimensions, star or snowflake) or denormalized flat tables (for data science or sharing) but it could be any other modeling style that fits best for your data consumer. The Business Vault contains data vault objects with soft business rules applied, augmenting the intelligence of the system, and potentially enhancing the performance of the consumer-facing views. Soft business rules may include the calculation of metrics, commonly used aggregations, master data records, PIT and Bridge tables helping to simplify access to information with highly performant views of facts and dimensions. Snowflake’s scalability will support the required speed of access at any point of this data lifecycle. You should consider materialization of Business Vault and other Information Delivery objects as optional.
 
-With a brand new Snowflake account, objects are not automatically created to represent these logical concepts. We must create them, keeping in mind Snowflake's object hierarchy below.
+With a brand new Snowflake account, objects are not automatically created to represent these logical concepts. We must create them, keeping in mind Snowflake's object hierarchy.
 
 ![Snowflake Object Hierarchy: Organization - Account - Database  - Schema - Object](assets/objecthierarchy.png)
 
@@ -202,8 +202,6 @@ Let's create a schema in the platform database for administration tools, contain
 
 ```sql
 -- Platform Database: Admin Tools ----------------------------------------------
-USE ROLE PLT_ADMIN;
-
 CREATE SCHEMA IF NOT EXISTS PLT.ADMIN_TOOLS
   WITH MANAGED ACCESS
   COMMENT = 'Common platform administration tools and utilities';
@@ -287,13 +285,16 @@ BEGIN
     -- _W: insert-only write access (LZ data is immutable after initial load)
     EXECUTE IMMEDIATE 'GRANT INSERT ON FUTURE TABLES IN SCHEMA ' || v_db || '.' || v_schema
         || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
+    EXECUTE IMMEDIATE 'GRANT MONITOR, OPERATE ON FUTURE PIPES IN SCHEMA ' || v_db || '.' || v_schema
+        || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
     EXECUTE IMMEDIATE 'GRANT USAGE, READ, WRITE ON FUTURE STAGES IN SCHEMA ' || v_db || '.' || v_schema
         || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
-    EXECUTE IMMEDIATE 'GRANT MONITOR, OPERATE ON FUTURE PIPES IN SCHEMA ' || v_db || '.' || v_schema
+    
+    EXECUTE IMMEDIATE 'GRANT CREATE TABLE ON SCHEMA ' || v_db || '.' || v_schema
         || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
     EXECUTE IMMEDIATE 'GRANT CREATE PIPE ON SCHEMA ' || v_db || '.' || v_schema
         || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
-    EXECUTE IMMEDIATE 'GRANT CREATE TABLE ON SCHEMA ' || v_db || '.' || v_schema
+    EXECUTE IMMEDIATE 'GRANT CREATE STAGE ON SCHEMA ' || v_db || '.' || v_schema
         || ' TO DATABASE ROLE ' || v_db || '.' || v_schema || '_W';
 
     RETURN 'SUCCESS: Created schema ' || v_db || '.' || v_schema
@@ -316,6 +317,7 @@ DECLARE
     v_db     VARCHAR DEFAULT UPPER(DATABASE_NAME);
     v_schema VARCHAR DEFAULT UPPER(SCHEMA_NAME);
 BEGIN
+    
     CALL PLT.ADMIN_TOOLS.CREATE_SCHEMA_AND_ROLES(:v_db, :v_schema, :DOMAIN);
 
     EXECUTE IMMEDIATE 'ALTER SCHEMA ' || v_db || '.' || v_schema
@@ -387,6 +389,7 @@ DECLARE
     v_db     VARCHAR DEFAULT UPPER(DATABASE_NAME);
     v_schema VARCHAR DEFAULT UPPER(SCHEMA_NAME);
 BEGIN
+    
     CALL PLT.ADMIN_TOOLS.CREATE_DOMAIN_SCHEMA_AND_ROLES(:v_db, :v_schema, :DOMAIN);
 
     -- _W: insert-only (DV tables are immutable)
@@ -413,6 +416,7 @@ DECLARE
     v_db     VARCHAR DEFAULT UPPER(DATABASE_NAME);
     v_schema VARCHAR DEFAULT UPPER(SCHEMA_NAME);
 BEGIN
+
     CALL PLT.ADMIN_TOOLS.CREATE_DOMAIN_SCHEMA_AND_ROLES(:v_db, :v_schema, :DOMAIN);
 
     -- _W: full write access to DW tables
@@ -566,7 +570,7 @@ USE WAREHOUSE ADMIN_WH;
 
 CALL PLT.ADMIN_TOOLS.CREATE_LZ_SCHEMA_AND_ROLES('DEV_LZ', 'TPCH_REF', 'Static Reference Data');
 CALL PLT.ADMIN_TOOLS.CREATE_LZ_SCHEMA_AND_ROLES('DEV_LZ', 'TPCH_CUSTOMER_SYS', 'Customer System');
-CALL PLT.ADMIN_TOOLS.CREATE_LZ_SCHEMA_AND_ROLES('DEV_LZ', 'TPCH_ORDER_SYS', 'Order System');
+CALL PLT.ADMIN_TOOLS.CREATE_LZ_SCHEMA_AND_ROLES('DEV_LZ', 'TPCH_ORDERS_SYS', 'Order System');
 
 GRANT DATABASE ROLE DEV_LZ.DB_W TO ROLE DEV_LZ_INGEST;
 ```
@@ -579,9 +583,6 @@ Now that we know our domains, let's create domain-oriented schemas in the DV and
 
 ```sql
 -- Enterprise Memory and Information Delivery Schemas --------------------------
-USE ROLE PLT_ADMIN;
-USE WAREHOUSE ADMIN_WH;
-
 CALL PLT.ADMIN_TOOLS.CREATE_DV_SCHEMA_AND_ROLES('DEV_DV', 'SALESMKT', 'Sales & Marketing');
 CALL PLT.ADMIN_TOOLS.CREATE_DW_SCHEMA_AND_ROLES('DEV_DW', 'SALESMKT', 'Sales & Marketing');
 CALL PLT.ADMIN_TOOLS.CREATE_DV_SCHEMA_AND_ROLES('DEV_DV', 'CUSTSERV', 'Customer Service');
