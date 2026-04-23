@@ -47,7 +47,7 @@ Luckily, streaming data is one of the [use-cases](/cloud-data-platform/) that Sn
 
 This is the target architecture. 
 
-![Multi-Tier Data Vault Architecture](assets/img1.png)  
+![Multi-Tier Data Vault Architecture](assets/multitierdatavaultarchitecture.png)  
 
 In the [Defensible Analytics using Data Vault and Snowflake](https://www.snowflake.com/en/developers/guides/defensible-analytics-using-data-vault-and-snowflake/) guide, we implement components of this architecture, which we'll use in this guide. If you haven't already executed the steps in that guide in your Snowflake account, you'll need to do that now, or change the examples given in this guide to accommodate your design.
 
@@ -55,7 +55,7 @@ In the [Defensible Analytics using Data Vault and Snowflake](https://www.snowfla
 <!-- ------------------------ -->
 ## Data Pipelines: Design
 
-![Data Pipeline Architecture](assets/img2.png)  
+![Continuous Data Pipeline Architecture](assets/continuousdatapipelinearchitecture.png)  
 
 Snowflake supports multiple options for engineering data pipelines. In this post we are going to show one of the most efficient ways to implement incremental NRT integration leveraging Snowflake [Continuous Data Pipelines](https://docs.snowflake.com/en/user-guide/data-pipelines.html).  Let's take a look at the architecture diagram above to understand how it works. 
 
@@ -167,19 +167,19 @@ CHANGE_TRACKING = TRUE;
 The tables we just created are going to be used by Snowpipe to drip-feed the data as it is lands in the stage. In order to easily detect and incrementally process the new portion of data we'll create [streams](https://docs.snowflake.com/en/user-guide/streams.html) on these staging tables. These streams are part of the mechanism used to load data into the Enterprise Memory Zone's Raw Vault, not into the Landing Zone, so we place them accordingly.
 
 ```sql
--- DV: Tracking Customer Changes ----------------------------------------------
+--- DV: Tracking Customer Changes ----------------------------------------------
 USE ROLE SALESMKT_ENGINEER;
 USE WAREHOUSE ENGINEERING_WH;
 USE DATABASE DEV_DV;
 USE SCHEMA SALESMKT;
 
-CREATE OR REPLACE STREAM stg_customer_strm ON TABLE DEV_LZ.TPCH.stg_customer;
+CREATE OR REPLACE STREAM stg_customer_strm ON TABLE DEV_LZ.TPCH_CUSTOMER_SYS.stg_customer;
 
 -- DV: Tracking Orders Changes ------------------------------------------------
 USE ROLE CUSTSERV_ENGINEER;
 USE SCHEMA CUSTSERV;
 
-CREATE OR REPLACE STREAM stg_orders_strm ON TABLE DEV_LZ.TPCH.stg_orders;
+CREATE OR REPLACE STREAM stg_orders_strm ON TABLE DEV_LZ.TPCH_ORDERS_SYS.stg_orders;
 ```
 
 > Note the use of two different roles here. You are effectively acting as a data engineer for two domains. Domains are not teams. A single person can have multiple functional roles, which are like "wearing different hats." In a real-world scenario, we're likely working with subject matter experts and getting approval from leaders specific to either the Sales & Marketing domain (perhaps the CRO, or VP of Sales), or the Customer Service domain (perhaps the CCO, or VP of Customer Success). The process is similar, but the specific people are often different.
@@ -231,15 +231,17 @@ FROM
 INCLUDE_QUERY_ID=TRUE;
 ```
 
-You can now run the following to validate that the data is now stored in files:
+You can now run the following to validate that the JSON object data is now stored in files:
 
 ```sql
 -- LZ: Inspecting Customer System Data -----------------------------------------
 USE SCHEMA TPCH_CUSTOMER_SYS;
+
 LIST @customer_data;
+
 SELECT METADATA$FILENAME,$1 FROM @customer_data; 
 ```
-![Staged Data](assets/img10.png)
+![Semistructured JSON Customer Data](assets/semistructuredcustomerdata.png)
 
 Next, we are going to setup Snowpipe to load data from files in a stage into staging tables. 
 
@@ -305,7 +307,7 @@ UNION ALL
 SELECT 'DEV_DV.CUSTSERV.stg_orders_strm', count(1) FROM DEV_DV.CUSTSERV.stg_orders_strm
 ;
 ```
-![Matching Row Counts](assets/img11.png)
+![Matching Row Counts](assets/matchingrowcounts.png)
 
 ### Step 5: DV - Loading the Raw Vault
 
@@ -512,23 +514,24 @@ CREATE OR REPLACE TABLE rv_lnk_customer_order
 );
 ```
 
-### Step 2: PICK UP HERE!!!
+### Step 2: Automated Loading into the Raw Vault Tables
 
-2. Now we have source data waiting in our staging streams & views, we have target RDV tables. 
-Let's connect the dots. We are going to create tasks, one per each stream so whenever there is new records coming in a stream, that delta will be incrementally propagated to all dependent RDV models in one go. To achieve that, we are going to use multi-table insert functionality as described in design section before. As you can see, tasks can be set up to run on a pre-defined frequency (every 1 minute in our example) and use dedicated virtual warehouse as a compute power (in our guide we are going to use same warehouse for all tasks, though this could be as granular as needed). Also, before waking up a compute resource, tasks are going to check that there is data in a corresponding stream to process. Again, you are paying only for the compute when you actually use it.  
+Now, we have source data waiting in our staging streams & views, and we have target Raw Vault tables ready. Empty, but ready.
+
+Let's connect the dots. We'll create tasks, one per stream, so when new records are available, that new data will be incrementally loaded to all dependent Raw Vault models in one operation. To achieve that, we'll use multi-table insert capability of Snowflake mentioned earlier. As you can see, tasks can be set up to run on a pre-defined frequency (every 1 minute in our example) and use a dedicated virtual warehouse as a compute power. To minimize compute costs, before waking up a compute resource, tasks will check for new data in the stream. You only pay for the compute you use.
 
 ```sql
 USE ROLE SALESMKT_ENGINEER;
 USE SCHEMA DEV_DV.SALESMKT;
 
-CREATE OR REPLACE TASK customer_strm_tsk
+CREATE OR REPLACE TASK stg_customer_strm_tsk
   WAREHOUSE = DEV_XFORM_WH
   SCHEDULE = '1 minute'
 WHEN
   SYSTEM$STREAM_HAS_DATA('DEV_DV.SALESMKT.STG_CUSTOMER_STRM')
 AS 
 INSERT ALL
-WHEN (SELECT COUNT(1) FROM hub_customer tgt WHERE tgt.sha1_hub_customer = src_sha1_hub_customer) = 0
+WHEN (SELECT COUNT(1) FROM rv_hub_customer tgt WHERE tgt.customer_hk = src_customer_hk) = 0
 THEN INTO hub_customer  
 ( sha1_hub_customer
 , c_custkey
@@ -536,7 +539,7 @@ THEN INTO hub_customer
 , rsrc
 )  
 VALUES 
-( src_sha1_hub_customer
+( src_customer_hk
 , src_c_custkey
 , src_ldts
 , src_rsrc
