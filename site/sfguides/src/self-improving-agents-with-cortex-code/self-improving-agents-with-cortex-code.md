@@ -20,6 +20,7 @@ By the end, you'll have a versioned agent with measurably better performance —
 |------|---------------|
 | Setup | Deploy a production agent with 5 tools (VERSION$1) |
 | Stress Test | Run hard queries in Snowflake Intelligence to generate failure traces |
+| Install Cortex Code | Install the CLI while traces propagate (~10 min) |
 | Evaluate | Mine logs, curate an eval dataset, run Agent GPA baseline |
 | Optimize | Analyze failures, generate improved instructions (VERSION$2), validate with a second eval |
 
@@ -70,28 +71,6 @@ A complete agent optimization workflow:
 ### Prerequisites
 
 - Basic familiarity with Snowflake SQL and Cortex Agents
-
-<!-- ------------------------ -->
-
-## Install Cortex Code
-
-Cortex Code is an AI-powered CLI that you'll use throughout this guide to mine agent logs, run evaluations, analyze failures, and generate improved agent instructions.
-
-**Linux / macOS / WSL:**
-
-```bash
-curl -LsS https://ai.snowflake.com/static/cc-scripts/install.sh | sh
-```
-
-**Windows (PowerShell):**
-
-```powershell
-irm https://ai.snowflake.com/static/cc-scripts/install.ps1 | iex
-```
-
-After installation, run `cortex` to launch the setup wizard — it will guide you through connecting to your Snowflake account.
-
-For detailed setup instructions, see the [Cortex Code CLI docs](https://docs.snowflake.com/en/user-guide/cortex-code/cortex-code-cli).
 
 <!-- ------------------------ -->
 
@@ -153,7 +132,29 @@ For each of our top 5 campaigns by revenue, show me the customer feedback and wh
 Build me a quarterly business review — top campaigns, underperformers, customer sentiment trends, and how we stack up against competitors
 ```
 
-These traces are now logged and ready to mine.
+> **Note:** It can take up to 10 minutes for agent interaction traces to appear in the observability logs. If you just finished running the queries above, now is a good time to install Cortex Code (next step) while the traces propagate.
+
+<!-- ------------------------ -->
+
+## Install Cortex Code
+
+Cortex Code is an AI-powered CLI that you'll use to mine agent logs, run evaluations, analyze failures, and generate improved agent instructions.
+
+**Linux / macOS / WSL:**
+
+```bash
+curl -LsS https://ai.snowflake.com/static/cc-scripts/install.sh | sh
+```
+
+**Windows (PowerShell):**
+
+```powershell
+irm https://ai.snowflake.com/static/cc-scripts/install.ps1 | iex
+```
+
+After installation, run `cortex` to launch the setup wizard — it will guide you through connecting to your Snowflake account.
+
+For detailed setup instructions, see the [Cortex Code CLI docs](https://docs.snowflake.com/en/user-guide/cortex-code/cortex-code-cli).
 
 <!-- ------------------------ -->
 
@@ -187,10 +188,8 @@ Cortex Code will:
 Run Agent GPA on your curated dataset. Enter this prompt in Cortex Code:
 
 ```
-Run an evaluation of SELF_IMPROVING_AGENT_DB.AGENTS.MARKETING_CAMPAIGNS_AGENT
-against the DS_EVAL dataset. Use the default Agent GPA metrics:
-answer_correctness and logical_consistency. Upload the config to a stage in
-SELF_IMPROVING_AGENT_DB.AGENTS and kick off the eval.
+Run an evaluation for SELF_IMPROVING_AGENT_DB.AGENTS.MARKETING_CAMPAIGNS_AGENT
+against the DS_EVAL registered dataset.
 ```
 
 Once the eval completes, analyze the results:
