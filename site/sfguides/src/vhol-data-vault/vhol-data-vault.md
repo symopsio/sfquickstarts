@@ -164,8 +164,7 @@ CHANGE_TRACKING = TRUE;
 
 ### Step 3: DV - Tracking New Data to be loaded into the Raw Vault
 
-The tables we just created are going to be used by Snowpipe to drip-feed the data as it is lands in the stage. 
-In order to easily detect and incrementally process the new portion of data we'll' create [streams](https://docs.snowflake.com/en/user-guide/streams.html) on these staging tables.
+The tables we just created are going to be used by Snowpipe to drip-feed the data as it is lands in the stage. In order to easily detect and incrementally process the new portion of data we'll create [streams](https://docs.snowflake.com/en/user-guide/streams.html) on these staging tables. These streams are part of the mechanism used to load data into the Enterprise Memory Zone's Raw Vault, not into the Landing Zone, so we place them accordingly.
 
 ```sql
 -- DV: Tracking Customer Changes ----------------------------------------------
@@ -183,7 +182,7 @@ USE SCHEMA CUSTSERV;
 CREATE OR REPLACE STREAM stg_orders_strm ON TABLE DEV_LZ.TPCH.stg_orders;
 ```
 
-> Note that these two streams are part of the mechanism we'll use to load data into the Enterprise Memory Zone's Raw Vault, not into the Landing Zone, and we place them accordingly.
+> Note the use of two different roles here. You are effectively acting as a data engineer for two domains. Domains are not teams. A single person can have multiple functional roles, which are like "wearing different hats." In a real-world scenario, we're likely working with subject matter experts and getting approval from leaders specific to either the Sales & Marketing domain (perhaps the CRO, or VP of Sales), or the Customer Service domain (perhaps the CCO, or VP of Customer Success). The process is similar, but the specific people are often different.
 
 ### Step 4: LZ - Simulating New Data into the Landing Zone
 
@@ -387,12 +386,12 @@ Does the output look good? Well done! We've built our staging/inbound pipeline, 
 
 In this section, we will start building structures and pipelines for the **Raw Vault**.
 
-Here is the ER model of the objects we are going to deploy using the script below:
-![staged data](assets/img16.png)
+Here is the ERD of the objects we are going to deploy using the script below:
+![Raw Vault ERD](assets/img16.png)
 
-### Step 1: 
+### Step 1: Create Target Raw Vault Tables
 
-We'll start with DDL for the Hubs, Links and Satellites. As you can expect, this guide won't go into detail on the data vault modelling process. For certified training in DV2.1, We highly recommend working with experts & partners from Data Vault Alliance. Note that while we'll identify the PRIMARY KEY, Snowflake does not enforce uniqueness contraints.
+We'll start with DDL for the Hubs, Links and Satellites. As you can expect, this guide won't go into detail on the data vault modelling process. For certified training in DV2.1, We highly recommend working with experts & partners from Data Vault Alliance. Note that while we'll identify primary and foreign keys, remember that Snowflake does not enforce contraints.
 
 ```sql
 -- DV: Raw Vault - Sales & Marketing -------------------------------------------
@@ -407,7 +406,7 @@ CREATE OR REPLACE TABLE rv_hub_customer
 , customer_bk             NUMBER    NOT NULL                                                                                 
 , ldts                    TIMESTAMP NOT NULL
 , rsrc                    STRING    NOT NULL
-, CONSTRAINT pk_hub_customer        PRIMARY KEY(customer_hk)
+, CONSTRAINT pk_rv_hub_customer        PRIMARY KEY(customer_hk)
 );
 
 -- Sales & Marketing: Raw Vault Customer Satellite
@@ -424,8 +423,8 @@ CREATE OR REPLACE TABLE rv_sat_customer
 , nationcode             NUMBER
 , customer_hd            BINARY    NOT NULL
 , rsrc                   STRING    NOT NULL  
-, CONSTRAINT pk_sat_customer       PRIMARY KEY(customer_hk, ldts)
-, CONSTRAINT fk_sat_customer       FOREIGN KEY(customer_hk) REFERENCES rv_hub_customer
+, CONSTRAINT pk_rv_sat_customer       PRIMARY KEY(customer_hk, ldts)
+, CONSTRAINT fk_rv_sat_customer       FOREIGN KEY(customer_hk) REFERENCES rv_hub_customer
 );
 
 -- Sales & Marketing: Region Reference
@@ -436,7 +435,7 @@ CREATE OR REPLACE TABLE ref_region
 , rsrc                  STRING    NOT NULL
 , r_name                STRING
 , r_comment             STRING
-, CONSTRAINT PK_REF_REGION        PRIMARY KEY (regioncode)                                                                             
+, CONSTRAINT pk_ref_region        PRIMARY KEY (regioncode)                                                                             
 )
 AS 
 SELECT r_regionkey
@@ -512,6 +511,8 @@ CREATE OR REPLACE TABLE rv_lnk_customer_order
 , CONSTRAINT fk2_rv_lnk_customer_order FOREIGN KEY(order_hk)    REFERENCES rv_hub_order
 );
 ```
+
+### Step 2: PICK UP HERE!!!
 
 2. Now we have source data waiting in our staging streams & views, we have target RDV tables. 
 Let's connect the dots. We are going to create tasks, one per each stream so whenever there is new records coming in a stream, that delta will be incrementally propagated to all dependent RDV models in one go. To achieve that, we are going to use multi-table insert functionality as described in design section before. As you can see, tasks can be set up to run on a pre-defined frequency (every 1 minute in our example) and use dedicated virtual warehouse as a compute power (in our guide we are going to use same warehouse for all tasks, though this could be as granular as needed). Also, before waking up a compute resource, tasks are going to check that there is data in a corresponding stream to process. Again, you are paying only for the compute when you actually use it.  
