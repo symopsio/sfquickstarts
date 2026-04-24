@@ -46,16 +46,11 @@ Let's get started!
 <!-- ------------------------ -->
 ## Set Up Environment
 
-This section guides you through setting up your environment. We'll clone the companion assets, configure a few variables, and run a setup script that creates all the Snowflake objects we need.
+This section guides you through setting up your environment. We'll download the companion assets, configure a few variables, and run a setup script that creates all the Snowflake objects we need.
 
 ### Download the Assets
 
-Clone the companion assets from the sfquickstarts repository:
-
-```bash
-git clone https://github.com/Snowflake-Labs/sfquickstarts.git
-cd sfquickstarts/site/sfguides/src/get-started-snowflake-managed-iceberg-tables/assets
-```
+Download the companion assets from the [assets folder](https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/get-started-snowflake-managed-iceberg-tables/assets) and place them in a local directory. Then navigate into that directory in your terminal.
 
 ### Configure Variables
 
