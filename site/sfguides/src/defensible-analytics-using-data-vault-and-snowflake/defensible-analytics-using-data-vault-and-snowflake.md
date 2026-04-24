@@ -606,6 +606,11 @@ CREATE ROLE IF NOT EXISTS CUSTSERV_ENGINEER
   COMMENT = 'Data engineering role for the development of Customer Service objects and transformations';
 GRANT ROLE CUSTSERV_ENGINEER TO ROLE PLT_ADMIN;
 
+USE ROLE ACCOUNTADMIN;
+
+GRANT EXECUTE TASK ON ACCOUNT TO ROLE SALESMKT_ENGINEER;
+GRANT EXECUTE TASK ON ACCOUNT TO ROLE CUSTSERV_ENGINEER;
+
 -- Domain-Oriented Data Engineer Privileges ------------------------------------
 USE ROLE PLT_ADMIN;
 
