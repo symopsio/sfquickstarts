@@ -163,16 +163,10 @@ For detailed setup instructions, see the [Cortex Code CLI docs](https://docs.sno
 Open Cortex Code and enter `/bypass` to enable bypass mode, then enter the following prompt:
 
 ```
-Use the dataset-curation skill to pull observability traces for
+Use the dataset-curation skill to pull production traces for
 SELF_IMPROVING_AGENT_DB.AGENTS.MARKETING_CAMPAIGNS_AGENT and curate
-an evaluation dataset. Include a mix of:
-- Simple queries the agent handles well
-- Multi-tool queries where it struggles
-- Complex synthesis queries it fails on
-
-For each query, include ground truth with expected tool invocations.
-Store it in SELF_IMPROVING_AGENT_DB.AGENTS and register it as an
-evaluation dataset called DS_EVAL.
+an evaluation dataset. Store it in SELF_IMPROVING_AGENT_DB.AGENTS and register it as a new
+evaluation dataset.
 ```
 
 Cortex Code will:
@@ -189,7 +183,7 @@ Run Agent GPA on your curated dataset. Enter this prompt in Cortex Code:
 
 ```
 Run an evaluation for SELF_IMPROVING_AGENT_DB.AGENTS.MARKETING_CAMPAIGNS_AGENT
-against the DS_EVAL registered dataset.
+against the registered dataset.
 ```
 
 Once the eval completes, analyze the results:
@@ -248,7 +242,7 @@ Cortex Code will:
 
 ```
 Run the evaluation of SELF_IMPROVING_AGENT_DB.AGENTS.MARKETING_CAMPAIGNS_AGENT
-against DS_EVAL again, this time for VERSION$2. Compare the results
+against the same dataset, this time for VERSION$2. Compare the results
 against the VERSION$1 baseline — show me a side-by-side comparison of
 scores by metric and highlight what improved.
 ```
