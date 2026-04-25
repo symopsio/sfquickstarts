@@ -498,15 +498,15 @@ End-to-end Snowflake command sequence (assumes tools verified and bronze loaded)
 
 | Command | What it does |
 |---------|-------------|
-| `task bronze:snowflake-summary` | Print bucket/DB/ARNs needed for Snowflake catalog SQL |
-| `task snowflake:create-glue-catalog-read-role` | Create SIGV4 IAM role; write ARN to `.aws-config/` |
-| *(return to Bronze)* `task bronze:lakeformation-setup` | Grant SIGV4 role access via Lake Formation |
-| `task snowflake:generate-lab-sql` | Generate `01_catalog_integration` and `02_cld_verify` SQL |
-| `snow sql --filename snowflake/lab/generated/01_catalog_integration.generated.sql` | Create the catalog integration in Snowflake |
-| `task snowflake:describe-catalog-integration` | Print trust fields (API_AWS_IAM_USER_ARN + external ID) |
-| `task snowflake:render-glue-catalog-trust` | Render trust JSON using those fields |
-| `task snowflake:apply-glue-catalog-trust-from-rendered` | Apply rendered trust to SIGV4 IAM role |
-| `snow sql --filename snowflake/lab/generated/02_cld_verify.generated.sql` | Create CLD and run discovery queries |
+| **task bronze:snowflake-summary** | Print bucket/DB/ARNs needed for Snowflake catalog SQL |
+| **task snowflake:create-glue-catalog-read-role** | Create SIGV4 IAM role; write ARN to **.aws-config/** |
+| *(return to Bronze)* **task bronze:lakeformation-setup** | Grant SIGV4 role access via Lake Formation |
+| **task snowflake:generate-lab-sql** | Generate **01_catalog_integration** and **02_cld_verify** SQL |
+| **snow sql --filename snowflake/lab/generated/01_catalog_integration.generated.sql** | Create the catalog integration in Snowflake |
+| **task snowflake:describe-catalog-integration** | Print trust fields (API_AWS_IAM_USER_ARN + external ID) |
+| **task snowflake:render-glue-catalog-trust** | Render trust JSON using those fields |
+| **task snowflake:apply-glue-catalog-trust-from-rendered** | Apply rendered trust to SIGV4 IAM role |
+| **snow sql --filename snowflake/lab/generated/02_cld_verify.generated.sql** | Create CLD and run discovery queries |
 
 <!-- ------------------------ -->
 ## Dynamic Iceberg Tables
@@ -551,7 +551,7 @@ task snowflake:print-env-hints
 
 #### Generate and Apply DT SQL
 
-Generate the silver DT SQL from your env and `.aws-config/` artifacts:
+Generate the silver DT SQL from your env and **.aws-config/** artifacts:
 
 ```bash
 task dt:generate-sql
@@ -604,7 +604,7 @@ snow sql --filename snowflake/lab/04_dt_verify_sample_queries.sql
 <!-- ------------------------ -->
 ## SiS Dashboard
 
-After the silver Dynamic Tables are live, deploy a Streamlit in Snowflake app that visualizes `balloon_silver.silver.dt_*` without a local Streamlit server. The app uses `get_active_session()` and runs entirely in your Snowflake account.
+After the silver Dynamic Tables are live, deploy a Streamlit in Snowflake app that visualizes the balloon game event data. The app runs entirely in your Snowflake account next to your data.
 
 This chapter offers **two paths** to the same outcome — choose one (or try both):
 
@@ -617,7 +617,7 @@ This chapter offers **two paths** to the same outcome — choose one (or try bot
 
 **Prerequisites:**
 
-- `03_dt_pipelines` applied and all five `dt_*` tables exist in `balloon_silver.silver`
+- **03_dt_pipelines** applied and all five **dt_*** tables exist in **balloon_silver.silver**
 
 ### Easy Path: Intent-Driven (Cortex Code)
 
@@ -631,18 +631,26 @@ Copy and paste this into Cortex Code:
 
 ```text
 First, ask me the following before you start building:
+
 1. What database.schema has my game's Dynamic Tables?
 2. Where should the Streamlit app and stage be created?
 3. What warehouse should it use?
 
-Then, build me a Streamlit in Snowflake dashboard for my balloon popper
-game using the Dynamic Tables from the schema above.
+Then, build me a multi-page Streamlit in Snowflake dashboard for my balloon popper game using the Dynamic Tables from the schema above.
 
-I want to see who's winning, which colors are popular, which colors are
-worth more points, and how scores are trending. Make it multi-page with
-a home summary, leaderboard, color breakdown, and trends view.
-Auto-refreshing, clean charts, color scheme toggle. Handle missing data
-gracefully.
+Structure the app in its own directory with a pages/ directory:
+
+- streamlit_app.py — home page with a game summary and key metrics
+- pages/1_Leaderboard.py — top 5 player rankings, score gaps, bar chart
+- pages/2_Color_Breakdown.py — pops by color, avg points per pop, player-color heatmap, players favorite color
+- pages/3_Trends.py — color value over time, player scores over time
+
+I want to answer: 
+  * Who is winning and by how much? 
+  * Which colors are most popular? 
+  * Which color is worth more points? How are scores trending?
+
+Make it auto-refreshing, clean charts, easy to read at a glance. Handle missing data gracefully. Add a color scheme toggle. Use get_active_session(), wide layout, lowercase column names from Snowpark before passing to pandas. 
 ```
 
 When Cortex Code asks you the interactive questions, answer with:
@@ -675,7 +683,7 @@ in one shot — no errors, no retries. Include every technical
 constraint and detail you had to discover along the way.
 ```
 
-Save the prompt Cortex Code generates — that's your **baseline prompt** for future projects. This is the core practice of intent-driven development: start vague, let the agent iterate, then capture the learnings as a precise specification.
+Save the prompt Cortex Code generates — that's your **baseline prompt**. This is the core practice of intent-driven development: start vague, let the agent iterate, then capture the learnings as a precise specification.
 
 #### Round 3 (Optional) — Prove the Difference
 
@@ -795,7 +803,7 @@ Two HIRC-specific rules to keep in mind before you start:
 
 The fastest path: set three env vars, run one task, open the notebook.
 
-**1. Add to **.env**** (substitute your **LAB_USERNAME** prefix — for example **ksampath**):
+**1. Add to .env** (substitute your **LAB_USERNAME** prefix — for example **ksampath**):
 
 ```bash
 SNOWFLAKE_ACCOUNT_URL=https://<org>-<account>.snowflakecomputing.com
