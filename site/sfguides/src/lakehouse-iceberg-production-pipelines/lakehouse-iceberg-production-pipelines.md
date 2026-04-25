@@ -4,7 +4,8 @@ categories: snowflake-site:taxonomy/solution-center/certification/quickstart,sno
 language: en
 summary: Stop pipeline sprawl and the cost of data duplication. In this advanced lab, you will learn to perform secure, in-place transformations across your entire data estate. You will connect externally managed Iceberg tables with Catalog Linked Databases to always work on fresh data without ETL, build efficient and declarative pipelines with Dynamic Tables for Iceberg preserving multi-engine access to your data, and implement business continuity to ensure your production data is always available.
 environments: web
-status: Draft
+status: Published
+duration: 90
 feedback link: <https://github.com/Snowflake-Labs/sfguides/issues>
 fork repo link: <https://github.com/Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines>
 
@@ -33,7 +34,7 @@ A repeatable lakehouse workflow: bronze Iceberg tables loaded in AWS, consumed a
 - Access to a [Snowflake account](https://signup.snowflake.com/?utm_source=snowflake-devrel&utm_medium=developer-guides&utm_cta=developer-guides)
 - Access to an AWS account with permissions for Glue, S3, Lake Formation, and IAM
 - Local workstation with required CLIs — see **Local Toolchain** in the next section
-- A configured Snowflake CLI connection; verify with `snow connection test` before any `snow sql` steps ([Snowflake CLI installation](https://docs.snowflake.com/developer-guide/snowflake-cli/installation/installation))
+- A configured Snowflake CLI connection; verify with **snow connection test** before any **snow sql** steps ([Snowflake CLI installation](https://docs.snowflake.com/developer-guide/snowflake-cli/installation/installation))
 
 <!-- ------------------------ -->
 ## Use Case and Architecture
@@ -73,7 +74,7 @@ Events land as raw JSON strings in a single **event** column in the bronze Icebe
 
 ### Clone Repository
 
-This quickstart's narrative lives on Snowflake Quickstarts; all automation lives in the companion repository. Clone it and use the repo root as your working directory for every `task`, `uv run`, and path reference.
+This quickstart's narrative lives on Snowflake Quickstarts; all automation lives in the companion repository. Clone it and use the repo root as your working directory for every **task**, **uv run**, and path reference.
 
 ```bash
 git clone https://github.com/Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines.git
@@ -89,11 +90,11 @@ Repository: [Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines](http
 
 - AWS account with a named profile (**AWS_PROFILE**) that can create and update Glue databases, manage IAM roles, and access S3
 - Snowflake account with **ACCOUNTADMIN** or a role with **CREATE INTEGRATION**, **CREATE DATABASE**, and **CREATE STREAMLIT** privileges
-- Snowflake CLI connection configured for that account — `snow connection list` and `snow connection test` both succeed
+- Snowflake CLI connection configured for that account — **snow connection list** and **snow connection test** both succeed
 
 ### Required Tools
 
-This repo targets Python 3.12+. `uv` manages the interpreter and all dependencies.
+This repo targets Python 3.12+. **uv** manages the interpreter and all dependencies.
 
 | Tool | Role | macOS | Linux (Debian/Ubuntu) | Windows |
 |------|------|-------|-----------------------|---------|
@@ -105,9 +106,9 @@ This repo targets Python 3.12+. `uv` manages the interpreter and all dependencie
 | **envsubst** | Renders IAM policy templates (gettext package) | *brew install gettext* | *sudo apt install gettext-base* | WSL2 recommended |
 | **jq** | JSON checks at the shell | *brew install jq* | *sudo apt install jq* | *scoop install jq* |
 
-After `uv sync`, use `uv run snow …` from the repo root, or add `.venv/bin` (macOS/Linux) or `.venv\Scripts` (Windows) to your PATH.
+After **uv sync**, use **uv run snow …** from the repo root, or add **.venv/bin** (macOS/Linux) or **.venv\Scripts** (Windows) to your PATH.
 
-> **Windows note:** If `task check-tools` fails only on `envsubst`, use WSL2 or run `uv run bronze-cli render-iam` (the Python path) instead.
+> **Windows note:** If **task check-tools** fails only on **envsubst**, use WSL2 or run **uv run bronze-cli render-iam** (the Python path) instead.
 
 ### Recommended Tools
 
@@ -119,13 +120,13 @@ After `uv sync`, use `uv run snow …` from the repo root, or add `.venv/bin` (m
 
 ### Verify Installation
 
-Run the one-time bootstrap to install Python deps and create `.env` from the template (if it does not exist yet):
+Run the one-time bootstrap to install Python deps and create **.env** from the template (if it does not exist yet):
 
 ```bash
 task setup
 ```
 
-Configure your AWS profile and run the prerequisite check. The check will report errors for any missing required binaries, provide warnings for recommended (but not required) tools, and use `aws sts get-caller-identity` to validate your AWS session. Address any missing tools or credential issues, then rerun the check until you see **All required tools are available.**
+Configure your AWS profile and run the prerequisite check. The check will report errors for any missing required binaries, provide warnings for recommended (but not required) tools, and use **aws sts get-caller-identity** to validate your AWS session. Address any missing tools or credential issues, then rerun the check until you see **All required tools are available.**
 
 ```bash
 export AWS_PROFILE=your-profile
@@ -134,9 +135,9 @@ task check-tools
 
 ### Environment Inputs
 
-`task setup` copies `.env.example` to `.env` on first run. Edit `.env` and fill in your values.
+**task setup** copies **.env.example** to **.env** on first run. Edit **.env** and fill in your values.
 
-The `.env.example` is organized by lab phase. Key sections and variables:
+The **.env.example** is organized by lab phase. Key sections and variables:
 
 ```bash
 # =============================================================
@@ -188,6 +189,7 @@ S3TABLES_NAMESPACE=balloon_pops
 | **SNOWFLAKE_ROLE** | 2 | ACCOUNTADMIN | Role for catalog integration and CLD commands |
 | **SNOWFLAKE_SILVER_DATABASE** | 2 | balloon_silver | Native Snowflake database for DT objects |
 | **SNOWFLAKE_SILVER_SCHEMA** | 2 | silver | Schema for silver Dynamic Iceberg Tables |
+| **SNOWFLAKE_APPS_SCHEMA** | 2 | apps | Schema for Streamlit app deployment (SiS chapter) |
 
 <!-- ------------------------ -->
 ## Bronze Landing Zone
@@ -250,7 +252,7 @@ task bronze:snowflake-summary
 
 ### Lake Formation Setup
 
-After `task bronze:load` and after completing step 1 of the Snowflake CLD chapter (`task snowflake:create-glue-catalog-read-role`), configure Lake Formation for vended credentials.
+After **task bronze:load** and after completing step 1 of the Snowflake CLD chapter (**task snowflake:create-glue-catalog-read-role**), configure Lake Formation for vended credentials.
 
 Preview the Lake Formation setup without any AWS writes:
 
@@ -289,7 +291,7 @@ Use the same AWS account and **AWS_REGION** as your CLI profile.
 **S3 Warehouse:**
 
 1. Open **S3** → **Buckets** → **BRONZE_BUCKET_NAME**.
-2. Open the `iceberg/` prefix — expect `metadata/` and `data/` style keys after load.
+2. Open the **iceberg/** prefix — expect **metadata/** and **data/** style keys after load.
 
 **S3 Tables (optional):**
 
@@ -297,17 +299,17 @@ Open **S3 Tables** → **Table buckets** and confirm **BRONZE_S3TABLES_BUCKET_NA
 
 ### Optional: Query in Athena
 
-Use data source `AwsDataCatalog`, database **GLUE_DATABASE**, and table **balloon_game_events**. Do **not** select the `s3tables/<table-bucket>` federated catalog entry — that path is an empty shell until a separate writer commits metadata.
+Use data source **AwsDataCatalog**, database **GLUE_DATABASE**, and table **balloon_game_events**. Do **not** select the **s3tables/\<table-bucket\>** federated catalog entry — that path is an empty shell until a separate writer commits metadata.
 
 <!-- ------------------------ -->
-## Snowflake Catalong Linked Database(CLD)
+## Snowflake Catalog Linked Database (CLD)
 
 This chapter creates the Glue Iceberg REST catalog integration, tightens IAM trust, creates the catalog linked database (CLD), and runs discovery and read queries against **balloon_game_events**.
 
 **Before starting:**
 
-- Bronze tables are loaded; `.aws-config/glue-database.json` was written by `task bronze:glue-setup`
-- `snow connection test` succeeds
+- Bronze tables are loaded; **.aws-config/glue-database.json** was written by **task bronze:glue-setup**
+- **snow connection test** succeeds
 - Lake Formation is configured for **VENDED_CREDENTIALS** (see **Lake Formation Setup** in the Bronze chapter)
 
 ### Easy Path — Interactive Notebook
@@ -318,7 +320,7 @@ Follow the **Detailed Path** below for step-by-step shell commands.
 
 ### Detailed Path
 
-> **Role requirement:** The commands in this chapter require **ACCOUNTADMIN** or a role with **CREATE INTEGRATION**, **CREATE DATABASE**, and **GRANT** privileges. The lab defaults to **SNOWFLAKE_ROLE** = **ACCOUNTADMIN** set in `.env`. Confirm this before running any `snow sql` commands.
+> **Role requirement:** The commands in this chapter require **ACCOUNTADMIN** or a role with **CREATE INTEGRATION**, **CREATE DATABASE**, and **GRANT** privileges. The lab defaults to **SNOWFLAKE_ROLE** = **ACCOUNTADMIN** set in **.env**. Confirm this before running any **snow sql** commands.
 
 #### Create IAM Role
 
@@ -328,22 +330,22 @@ Create the Snowflake SIGV4 IAM role that Snowflake uses to sign Glue REST reques
 task snowflake:create-glue-catalog-read-role
 ```
 
-This writes the IAM role ARN to `.aws-config/snowflake-glue-catalog-iam-role-arn.txt`. All subsequent lab tools read it automatically — no env var override needed.
+This writes the IAM role ARN to **.aws-config/snowflake-glue-catalog-iam-role-arn.txt**. All subsequent lab tools read it automatically — no env var override needed.
 
-After this step, return to the Bronze chapter and run `task bronze:lakeformation-setup` to grant the SIGV4 role access via Lake Formation before proceeding.
+After this step, return to the Bronze chapter and run **task bronze:lakeformation-setup** to grant the SIGV4 role access via Lake Formation before proceeding.
 
 #### Generate SQL
 
-Generate runnable SQL from your `.aws-config/` artifacts:
+Generate runnable SQL from your **.aws-config/** artifacts:
 
 ```bash
 task snowflake:generate-lab-sql
 ```
 
-This writes two files to `snowflake/lab/generated/`:
+This writes two files to **snowflake/lab/generated/**:
 
-- `01_catalog_integration.generated.sql` — CREATE CATALOG INTEGRATION
-- `02_cld_verify.generated.sql` — CREATE DATABASE + SHOW + SELECT
+- **01_catalog_integration.generated.sql** — CREATE CATALOG INTEGRATION
+- **02_cld_verify.generated.sql** — CREATE DATABASE + SHOW + SELECT
 
 To preview the SQL without writing files:
 
@@ -361,12 +363,12 @@ snow sql --filename snowflake/lab/generated/01_catalog_integration.generated.sql
 
 The generated SQL creates **glue_rest_catalog_int** (default name) with these settings:
 
-- `CATALOG_SOURCE = ICEBERG_REST`, `TABLE_FORMAT = ICEBERG`
-- `CATALOG_URI` = `https://glue.<region>.amazonaws.com/iceberg`
-- `CATALOG_API_TYPE = AWS_GLUE`, `ACCESS_DELEGATION_MODE = VENDED_CREDENTIALS`
-- `CATALOG_NAME` = your 12-digit AWS account ID (Glue Data Catalog default)
-- `CATALOG_NAMESPACE` = **GLUE_DATABASE**
-- `SIGV4_IAM_ROLE` = ARN from `.aws-config/snowflake-glue-catalog-iam-role-arn.txt`
+- **CATALOG_SOURCE = ICEBERG_REST**, **TABLE_FORMAT = ICEBERG**
+- **CATALOG_URI** = https://glue.\<region\>.amazonaws.com/iceberg
+- **CATALOG_API_TYPE = AWS_GLUE**, **ACCESS_DELEGATION_MODE = VENDED_CREDENTIALS**
+- **CATALOG_NAME** = your 12-digit AWS account ID (Glue Data Catalog default)
+- **CATALOG_NAMESPACE** = **GLUE_DATABASE**
+- **SIGV4_IAM_ROLE** = ARN from **.aws-config/snowflake-glue-catalog-iam-role-arn.txt**
 
 #### Describe and Capture Trust Fields
 
@@ -386,7 +388,7 @@ Note **API_AWS_IAM_USER_ARN** and **API_AWS_EXTERNAL_ID** from the output — th
 
 #### Apply IAM Trust
 
-Render the trust document using the `DESC` output:
+Render the trust document using the **DESC** output:
 
 ```bash
 task snowflake:render-glue-catalog-trust
@@ -398,7 +400,7 @@ Apply the rendered trust policy to the SIGV4 IAM role:
 task snowflake:apply-glue-catalog-trust-from-rendered
 ```
 
-This updates the IAM role's trust policy to scope access to Snowflake's specific IAM user ARN and external ID. Alternatively, paste the rendered JSON from `.aws-config/snowflake-glue-catalog-trust-policy.rendered.json` directly in the IAM console under **Trust relationships**.
+This updates the IAM role's trust policy to scope access to Snowflake's specific IAM user ARN and external ID. Alternatively, paste the rendered JSON from **.aws-config/snowflake-glue-catalog-trust-policy.rendered.json** directly in the IAM console under **Trust relationships**.
 
 #### Create Catalog-Linked Database
 
@@ -418,7 +420,7 @@ CREATE OR REPLACE DATABASE balloon_game_events
   );
 ```
 
-> **Note:** Any change to Lake Formation permissions or IAM trust after a link failure requires re-creating the CLD. After fixing the LF/IAM settings, re-run `CREATE OR REPLACE DATABASE … LINKED_CATALOG = (…)` and re-apply `GRANT USAGE ON INTEGRATION glue_rest_catalog_int TO ROLE <your_role>`. See *Privileges Lost After CLD Recreate* in Troubleshooting.
+> **Note:** Any change to Lake Formation permissions or IAM trust after a link failure requires re-creating the CLD. After fixing the LF/IAM settings, re-run **CREATE OR REPLACE DATABASE … LINKED_CATALOG = (…)** and re-apply **GRANT USAGE ON INTEGRATION glue_rest_catalog_int TO ROLE \<your_role\>**. See *Privileges Lost After CLD Recreate* in Troubleshooting.
 
 Optional status checks:
 
@@ -459,12 +461,12 @@ LIMIT 10;
 
 #### Lake Formation Console Checks
 
-> **When to check:** Run these checks only if `SYSTEM$CATALOG_LINK_STATUS('balloon_game_events')` reports failures. A healthy link returns:
+> **When to check:** Run these checks only if **SYSTEM$CATALOG_LINK_STATUS('balloon_game_events')** reports failures. A healthy link returns:
 > ```json
 > {"failureDetails":[],"executionState":"RUNNING","lastLinkAttemptStartTime":"..."}
 > ```
 
-If `task bronze:lakeformation-setup` ran successfully, skip this. Otherwise verify these four settings manually.
+If **task bronze:lakeformation-setup** ran successfully, skip this. Otherwise verify these four settings manually.
 
 **1. Database mode:**
 
@@ -474,7 +476,7 @@ Open **Lake Formation** → **Data catalog** → **Databases** → open **GLUE_D
 
 **2. Data lake location:**
 
-Open **Permissions** → **Data lake locations**. Confirm `s3://<BRONZE_BUCKET_NAME>/iceberg/` is registered with **HybridAccessEnabled=false** and **WithFederation=false** using a dedicated LF data-access role that is **different** from the SIGV4 role.
+Open **Permissions** → **Data lake locations**. Confirm **s3://\<BRONZE_BUCKET_NAME\>/iceberg/** is registered with **HybridAccessEnabled=false** and **WithFederation=false** using a dedicated LF data-access role that is **different** from the SIGV4 role.
 
 ![Lake Formation — data lake storage settings](assets/aws_lf_data_lake_settings.png)
 
@@ -509,7 +511,7 @@ End-to-end Snowflake command sequence (assumes tools verified and bronze loaded)
 <!-- ------------------------ -->
 ## Dynamic Iceberg Tables
 
-With bronze readable through the CLD, add [Dynamic Iceberg Tables](https://docs.snowflake.com/en/user-guide/dynamic-tables-create-iceberg) that write silver Iceberg data. It uses [Snowflake Managed Storage](https://docs.snowflake.com/en/user-guide/tables-iceberg-internal-storage) for Iceberg. The sliver pipeline frequence is controlled on a declared **TARGET_LAG**. Five aggregation tables refresh automatically and remain readable by any Iceberg-compatible engine.
+With bronze readable through the CLD, add [Dynamic Iceberg Tables](https://docs.snowflake.com/en/user-guide/dynamic-tables-create-iceberg) that write silver Iceberg data. It uses [Snowflake Managed Storage](https://docs.snowflake.com/en/user-guide/tables-iceberg-internal-storage) for Iceberg. The silver pipeline frequency is controlled on a declared **TARGET_LAG**. Five aggregation tables refresh automatically and remain readable by any Iceberg-compatible engine.
 
 ### Five Silver Tables
 
@@ -531,7 +533,7 @@ Use the **Detailed Path** below for step-by-step shell commands.
 
 #### Configure Environment
 
-Set these variables in `.env` before generating SQL:
+Set these variables in **.env** before generating SQL:
 
 | Variable | Default | Notes |
 |----------|---------|-------|
@@ -555,7 +557,7 @@ Generate the silver DT SQL from your env and `.aws-config/` artifacts:
 task dt:generate-sql
 ```
 
-This writes `snowflake/lab/generated/03_dt_pipelines.generated.sql`.
+This writes **snowflake/lab/generated/03_dt_pipelines.generated.sql**.
 
 Apply the generated SQL:
 
@@ -563,7 +565,7 @@ Apply the generated SQL:
 snow sql --filename snowflake/lab/generated/03_dt_pipelines.generated.sql
 ```
 
-The unedited scaffold for manual editing lives at `snowflake/lab/03_dt_pipelines.sql`.
+The unedited scaffold for manual editing lives at **snowflake/lab/03_dt_pipelines.sql**.
 
 #### Verify
 
@@ -575,7 +577,7 @@ USE SCHEMA silver;
 SHOW DYNAMIC TABLES LIKE 'dt_%' IN SCHEMA;
 ```
 
-Wait for an initial refresh (check Snowsight → **Data** → **Dynamic Tables**, or inspect **SCHEDULING_STATE** in the `SHOW` output), then query:
+Wait for an initial refresh (check Snowsight → **Data** → **Dynamic Tables**, or inspect **SCHEDULING_STATE** in the **SHOW** output), then query:
 
 ```sql
 -- Top players by score
@@ -604,7 +606,108 @@ snow sql --filename snowflake/lab/04_dt_verify_sample_queries.sql
 
 After the silver Dynamic Tables are live, deploy a Streamlit in Snowflake app that visualizes `balloon_silver.silver.dt_*` without a local Streamlit server. The app uses `get_active_session()` and runs entirely in your Snowflake account.
 
-**App defaults (from `snowflake/sis/snowflake.yml`):**
+This chapter offers **two paths** to the same outcome — choose one (or try both):
+
+| Path | How | What you'll learn |
+|------|-----|-------------------|
+| **Easy Path: Cortex Code** | Describe what you want in natural language; AI builds, debugs, and deploys | Intent-driven development — how iterative prompts replace manual coding |
+| **Detailed Path: CLI** | Write every file and run every CLI command yourself | Full control, traditional workflow |
+
+> **Recommended:** Try the Easy Path first. Watch Cortex Code encounter errors (missing packages, unsupported features, permission gaps) and self-heal. Then ask it to generate the "ideal prompt" that would have worked in one shot — that's the core lesson of [Intent-Driven Development (IDD)](https://blogs.kameshs.dev/intent-driven-development-the-shift-developers-cant-ignore-ef434f94d56c).
+
+**Prerequisites:**
+
+- `03_dt_pipelines` applied and all five `dt_*` tables exist in `balloon_silver.silver`
+
+### Easy Path: Intent-Driven (Cortex Code)
+
+Open **Cortex Code** from the Snowsight sidebar. This path has three rounds that demonstrate the progression from vague intent to precise specification.
+
+#### Round 1 — State Your Intent
+
+*Tell the agent **what** you want, not **how** to build it.*
+
+Copy and paste this into Cortex Code:
+
+```text
+First, ask me the following before you start building:
+1. What database.schema has my game's Dynamic Tables?
+2. Where should the Streamlit app and stage be created?
+3. What warehouse should it use?
+
+Then, build me a Streamlit in Snowflake dashboard for my balloon popper
+game using the Dynamic Tables from the schema above.
+
+I want to see who's winning, which colors are popular, which colors are
+worth more points, and how scores are trending. Make it multi-page with
+a home summary, leaderboard, color breakdown, and trends view.
+Auto-refreshing, clean charts, color scheme toggle. Handle missing data
+gracefully.
+```
+
+When Cortex Code asks you the interactive questions, answer with:
+
+- **Dynamic Tables schema:** **balloon_silver.silver** (or your **SNOWFLAKE_SILVER_DATABASE.SNOWFLAKE_SILVER_SCHEMA**)
+- **App schema:** **balloon_silver.apps**
+- **Warehouse:** your **SNOWFLAKE_WAREHOUSE** value
+
+**What to watch for:** Cortex Code will likely hit 3–4 errors and fix each one automatically:
+
+| Expected error | Root cause | CoCo self-heals by… |
+|----------------|-----------|----------------------|
+| **st.set_page_config** crash | **page_icon** / **page_title** unsupported in SiS | Removing unsupported params |
+| Heatmap import error | **px.imshow** requires **scipy** (not in Snowflake conda) | Switching to **plotly.graph_objects.Heatmap** |
+| **st.rerun()** not found | Default Streamlit version is 1.22; **st.rerun** needs ≥ 1.27 | Pinning **streamlit=1.35.0** in **environment.yml** |
+| Schema does not exist | **balloon_silver.apps** not yet created | Creating the schema automatically |
+| "No data available" on all pages | App's owner role lacks SELECT on silver DTs | Discovering and granting permissions |
+
+That iterative error → fix loop **is** the demo. Each failure is an intent gap that Cortex Code closes autonomously.
+
+#### Round 2 — Ask CoCo to Reflect
+
+After the dashboard is running, paste this into Cortex Code:
+
+```text
+Look at the errors you encountered and the fixes you made while
+building this dashboard. Based on that experience, write me the
+precise, optimized prompt that would have built this app correctly
+in one shot — no errors, no retries. Include every technical
+constraint and detail you had to discover along the way.
+```
+
+Save the prompt Cortex Code generates — that's your **baseline prompt** for future projects. This is the core practice of intent-driven development: start vague, let the agent iterate, then capture the learnings as a precise specification.
+
+#### Round 3 (Optional) — Prove the Difference
+
+Want to see the contrast? Ask Cortex Code to delete the app, start a fresh CoCo session, paste the optimized prompt from Round 2, and watch it build cleanly in one pass — zero errors, zero retries.
+
+### Detailed Path (CLI)
+
+Follow this path for a traditional, manual deployment using the Snowflake CLI.
+
+**Additional prerequisites for Detailed Path:**
+
+- Snowflake CLI 3.14+ installed (via **uv sync**, then use **uv run snow**)
+- Your role has **SELECT** on **balloon_silver.silver.*** and **CREATE STREAMLIT** on **balloon_silver.apps**
+
+#### Prepare the APPS Schema
+
+Create the schema and grant access before deploying:
+
+```sql
+CREATE SCHEMA IF NOT EXISTS balloon_silver.apps;
+```
+
+If your Streamlit app will run under a role other than **ACCOUNTADMIN** (e.g. a personal lab role), grant access to the silver data:
+
+```sql
+GRANT USAGE ON DATABASE balloon_silver TO ROLE <your_role>;
+GRANT USAGE ON SCHEMA balloon_silver.silver TO ROLE <your_role>;
+GRANT SELECT ON ALL DYNAMIC TABLES IN SCHEMA balloon_silver.silver TO ROLE <your_role>;
+GRANT ALL ON SCHEMA balloon_silver.apps TO ROLE <your_role>;
+```
+
+**App defaults (from **snowflake/sis/snowflake.yml**):**
 
 | Setting | Value |
 |---------|-------|
@@ -613,23 +716,17 @@ After the silver Dynamic Tables are live, deploy a Streamlit in Snowflake app th
 | Query warehouse | *COMPUTE_WH* (override via **SNOWFLAKE_WAREHOUSE**) |
 | Deploy task | *task snowflake:sis-deploy* |
 
-The `snowflake/sis/snowflake.yml` is the ground truth for deployment defaults. The app's schema (**SNOWFLAKE_APPS_SCHEMA** = `apps`) is separate from the silver data schema (**SNOWFLAKE_SILVER_SCHEMA** = `silver`).
+The **snowflake/sis/snowflake.yml** is the ground truth for deployment defaults. The app's schema (**SNOWFLAKE_APPS_SCHEMA** = **apps**) is separate from the silver data schema (**SNOWFLAKE_SILVER_SCHEMA** = **silver**).
 
-**Prerequisites:**
+#### Deploy the App
 
-- `03_dt_pipelines` applied and all five `dt_*` tables exist in `balloon_silver.silver`
-- Your role has **SELECT** on `balloon_silver.silver.*` and **CREATE STREAMLIT** on `balloon_silver.apps`
-- Snowflake CLI 3.14+ installed (via `uv sync`, then use `uv run snow`)
-
-### Deploy the App
-
-`task snowflake:sis-deploy` creates the target schema, stage, and Streamlit object automatically. Deploy using the task wrapper (recommended — reads **LAB_USERNAME**, **SNOWFLAKE_APPS_SCHEMA**, **SNOWFLAKE_SILVER_DATABASE**, **SNOWFLAKE_SILVER_SCHEMA**, and **SNOWFLAKE_WAREHOUSE** from `.env`):
+**task snowflake:sis-deploy** creates the target schema, stage, and Streamlit object automatically. Deploy using the task wrapper (recommended — reads **LAB_USERNAME**, **SNOWFLAKE_APPS_SCHEMA**, **SNOWFLAKE_SILVER_DATABASE**, **SNOWFLAKE_SILVER_SCHEMA**, and **SNOWFLAKE_WAREHOUSE** from **.env**):
 
 ```bash
 task snowflake:sis-deploy -- --open
 ```
 
-Adding `--open` launches the app in a browser immediately after deploy.
+Adding **--open** launches the app in a browser immediately after deploy.
 
 Alternatively, deploy directly with Snowflake CLI:
 
@@ -691,14 +788,14 @@ DuckDB authenticates using a Programmatic Access Token (PAT). The PAT is exchang
 
 Two HIRC-specific rules to keep in mind before you start:
 
-- **Warehouse name is case-sensitive** — the catalog name in `ATTACH` must be **UPPERCASE** (e.g. `'BALLOON_SILVER'`). Lowercase returns HTTP 404.
-- **`GRANT ON ALL TABLES` skips Dynamic Iceberg Tables** — you must use `ON ALL DYNAMIC TABLES` and `ON FUTURE DYNAMIC TABLES`; the plain `TABLES` variant silently grants nothing.
+- **Warehouse name is case-sensitive** — the catalog name in **ATTACH** must be **UPPERCASE** (e.g. **'BALLOON_SILVER'**). Lowercase returns HTTP 404.
+- **GRANT ON ALL TABLES skips Dynamic Iceberg Tables** — you must use **ON ALL DYNAMIC TABLES** and **ON FUTURE DYNAMIC TABLES**; the plain **TABLES** variant silently grants nothing.
 
 ### Quick Start
 
 The fastest path: set three env vars, run one task, open the notebook.
 
-**1. Add to `.env`** (substitute your `LAB_USERNAME` prefix — for example `ksampath`):
+**1. Add to **.env**** (substitute your **LAB_USERNAME** prefix — for example **ksampath**):
 
 ```bash
 SNOWFLAKE_ACCOUNT_URL=https://<org>-<account>.snowflakecomputing.com
@@ -715,19 +812,16 @@ task snowflake:pat-create
 
 This creates the role, user, and a PAT scoped to that role, then stores the PAT in your OS keyring. No further steps needed for auth.
 
-**3. Grant Iceberg access** (run as `ACCOUNTADMIN` — replace `balloon_silver` with your `SNOWFLAKE_SILVER_DATABASE`):
+**3. Grant Iceberg access** (run as **ACCOUNTADMIN** — replace **balloon_silver** with your **SNOWFLAKE_SILVER_DATABASE**):
 
-> **Critical:**
->
-> `GRANT SELECT ON ALL TABLES` silently skips Dynamic Iceberg Tables. Use `ON ALL DYNAMIC TABLES` and `ON FUTURE DYNAMIC TABLES`.
->
-> ```sql
->
-> GRANT USAGE ON DATABASE balloon_silver TO ROLE duckdb_silver_reader;
-> GRANT USAGE ON SCHEMA balloon_silver.silver TO ROLE duckdb_silver_reader;
-> GRANT SELECT ON ALL DYNAMIC TABLES IN SCHEMA balloon_silver.silver TO ROLE duckdb_silver_reader;
-> GRANT SELECT ON FUTURE DYNAMIC TABLES IN SCHEMA balloon_silver.silver TO ROLE duckdb_silver_reader;
-> ```
+> **Critical:** **GRANT SELECT ON ALL TABLES** silently skips Dynamic Iceberg Tables. Use **ON ALL DYNAMIC TABLES** and **ON FUTURE DYNAMIC TABLES**.
+
+```sql
+GRANT USAGE ON DATABASE balloon_silver TO ROLE duckdb_silver_reader;
+GRANT USAGE ON SCHEMA balloon_silver.silver TO ROLE duckdb_silver_reader;
+GRANT SELECT ON ALL DYNAMIC TABLES IN SCHEMA balloon_silver.silver TO ROLE duckdb_silver_reader;
+GRANT SELECT ON FUTURE DYNAMIC TABLES IN SCHEMA balloon_silver.silver TO ROLE duckdb_silver_reader;
+```
 
 **4. Open the notebook:**
 
@@ -740,25 +834,25 @@ This section explains each step in the Quick Start and shows the raw DuckDB SQL 
 #### Prerequisites
 
 - Silver Dynamic Iceberg Tables created and refreshed at least once
-- Snowflake role with `CREATE ROLE` / `CREATE USER` privileges for service account setup
-- DuckDB available in the project Python environment — `uv sync` installs it automatically
+- Snowflake role with **CREATE ROLE** / **CREATE USER** privileges for service account setup
+- DuckDB available in the project Python environment — **uv sync** installs it automatically
 
-#### What `task snowflake:pat-create` does
+#### What **task snowflake:pat-create** does
 
-`task snowflake:pat-create` calls `sfutils-pat create --user SA_USER --role SA_ROLE --db SNOWFLAKE_SILVER_DATABASE`, which:
+**task snowflake:pat-create** calls **sfutils-pat create --user SA_USER --role SA_ROLE --db SNOWFLAKE_SILVER_DATABASE**, which:
 
-1. Creates the role `SA_ROLE` if it does not exist (no hyphens — HIRC requires underscore-only role names)
-2. Creates the user `SA_USER` with `DEFAULT_ROLE = SA_ROLE`
-3. Grants `SA_ROLE` to `SA_USER`
-4. Creates a PAT scoped to `SA_ROLE` and stores it in the OS keyring under `HOST:ACCOUNT:USER:SFUTILS-PAT:PAT_NAME`
+1. Creates the role **SA_ROLE** if it does not exist (no hyphens — HIRC requires underscore-only role names)
+2. Creates the user **SA_USER** with **DEFAULT_ROLE = SA_ROLE**
+3. Grants **SA_ROLE** to **SA_USER**
+4. Creates a PAT scoped to **SA_ROLE** and stores it in the OS keyring under **HOST:ACCOUNT:USER:SFUTILS-PAT:PAT_NAME**
 
-The PAT never touches `.env` or any tracked file.
+The PAT never touches **.env** or any tracked file.
 
 > **Security:** For CI/CD environments, inject the PAT at runtime from a vault or secrets manager.
 
 #### Grant Iceberg access (manual SQL)
 
-The task creates the role and user but does not grant table access. Run this once as `ACCOUNTADMIN`:
+The task creates the role and user but does not grant table access. Run this once as **ACCOUNTADMIN**:
 
 ```sql
 CREATE ROLE IF NOT EXISTS duckdb_silver_reader;
@@ -804,7 +898,7 @@ ATTACH 'BALLOON_SILVER' AS balloon_silver (
 );
 ```
 
-Discover tables — `SHOW ALL TABLES` returns empty for Iceberg REST catalogs; use `USE` first:
+Discover tables — **SHOW ALL TABLES** returns empty for Iceberg REST catalogs; use **USE** first:
 
 ```sql
 USE balloon_silver.SILVER;
@@ -826,7 +920,7 @@ LIMIT 10;
 - Reads work on Iceberg v2 or earlier only
 - Tables with row access policies or masking policies are not accessible via HIRC
 - Only Snowflake-managed Iceberg tables are supported — not externally managed, Delta, or Parquet Direct tables
-- `SHOW ALL TABLES` and `information_schema` are unavailable for attached Iceberg REST catalogs in DuckDB — use `USE catalog.SCHEMA; SHOW TABLES`
+- **SHOW ALL TABLES** and **information_schema** are unavailable for attached Iceberg REST catalogs in DuckDB — use **USE catalog.SCHEMA; SHOW TABLES**
 
 ### Case-Sensitive Identifiers
 
@@ -853,9 +947,10 @@ Drop Dynamic Tables and the silver database:
 DROP DATABASE IF EXISTS balloon_silver;
 ```
 
-Drop the Streamlit app (if deployed):
+Drop the Streamlit app (if deployed). If you used the **Easy Path (Cortex Code)**, the app name may differ — check **SHOW STREAMLITS IN SCHEMA balloon_silver.apps** first:
 
 ```sql
+SHOW STREAMLITS IN SCHEMA balloon_silver.apps;
 DROP STREAMLIT IF EXISTS balloon_silver.apps.balloon_game_dashboard;
 ```
 
@@ -900,17 +995,17 @@ Remove Glue tables, the Glue database, and S3 Tables control-plane resources:
 task bronze:cleanup
 ```
 
-`bronze:cleanup` removes Glue and S3 Tables metadata only. It does **not** delete **BRONZE_BUCKET_NAME** or objects under `iceberg/` in S3. Remove those manually:
+**bronze:cleanup** removes Glue and S3 Tables metadata only. It does **not** delete **BRONZE_BUCKET_NAME** or objects under **iceberg/** in S3. Remove those manually:
 
 ```bash
 aws s3 rm "s3://$BRONZE_BUCKET_NAME/iceberg/" --recursive
 ```
 
-Lake Formation registrations and IAM roles created for LF are not removed by `bronze:cleanup` — delete those in the AWS console or via CLI as needed.
+Lake Formation registrations and IAM roles created for LF are not removed by **bronze:cleanup** — delete those in the AWS console or via CLI as needed.
 
 ### Optional: Delete SIGV4 Lab Role
 
-If `task snowflake:create-glue-catalog-read-role` created the IAM role, remove it after Snowflake teardown:
+If **task snowflake:create-glue-catalog-read-role** created the IAM role, remove it after Snowflake teardown:
 
 ```bash
 task bronze:cleanup-dry-run -- --delete-snowflake-catalog-iam-role
@@ -920,20 +1015,20 @@ task bronze:cleanup-dry-run -- --delete-snowflake-catalog-iam-role
 task bronze:cleanup -- --yes --delete-snowflake-catalog-iam-role
 ```
 
-This deletes only roles tagged `project=balloon-popper-demo` and `purpose=snowflake-glue-catalog-read`.
+This deletes only roles tagged **project=balloon-popper-demo** and **purpose=snowflake-glue-catalog-read**.
 
 <!-- ------------------------ -->
 ## Troubleshooting
 
 ### Credential Vending Error 094120
 
-If **SYSTEM$CATALOG_LINK_STATUS** returns error code `094120` ("Failed to retrieve credentials from the Catalog"), work through this checklist in order:
+If **SYSTEM$CATALOG_LINK_STATUS** returns error code **094120** ("Failed to retrieve credentials from the Catalog"), work through this checklist in order:
 
-1. **Two separate IAM roles:** The SIGV4 role (Snowflake catalog signer) and the LF data-access role passed to `register-resource --role-arn` must be different principals. Using the same role causes credential vending failures.
-2. **Register-resource flags:** The warehouse S3 location must be registered with `HybridAccessEnabled=false` and `WithFederation=false`. Hybrid mode produces unpredictable vending behavior.
-3. **Glue default permissions:** Run `aws glue update-database` with empty `CreateTableDefaultPermissions` on **GLUE_DATABASE** so new tables follow Lake Formation mode, not IAM-only defaults.
-4. **LF grants:** The SIGV4 role must have **DESCRIBE** on the database and **SELECT**, **DESCRIBE** on the table wildcard via Lake Formation `grant-permissions`.
-5. **Recreate the CLD:** After fixing any LF or IAM setting, run `CREATE OR REPLACE DATABASE … LINKED_CATALOG = ( … )`. `ALTER DATABASE … RESUME DISCOVERY` only retries table/schema discovery — it does not re-establish the catalog connection.
+1. **Two separate IAM roles:** The SIGV4 role (Snowflake catalog signer) and the LF data-access role passed to **register-resource --role-arn** must be different principals. Using the same role causes credential vending failures.
+2. **Register-resource flags:** The warehouse S3 location must be registered with **HybridAccessEnabled=false** and **WithFederation=false**. Hybrid mode produces unpredictable vending behavior.
+3. **Glue default permissions:** Run **aws glue update-database** with empty **CreateTableDefaultPermissions** on **GLUE_DATABASE** so new tables follow Lake Formation mode, not IAM-only defaults.
+4. **LF grants:** The SIGV4 role must have **DESCRIBE** on the database and **SELECT**, **DESCRIBE** on the table wildcard via Lake Formation **grant-permissions**.
+5. **Recreate the CLD:** After fixing any LF or IAM setting, run **CREATE OR REPLACE DATABASE … LINKED_CATALOG = ( … )**. **ALTER DATABASE … RESUME DISCOVERY** only retries table/schema discovery — it does not re-establish the catalog connection.
 
 ### Glue Schema Not Found
 
@@ -951,7 +1046,7 @@ SHOW ICEBERG TABLES IN SCHEMA balloon_game_events."ksampath_balloon_pops";
 
 ### Integration DISABLED After Trust Apply
 
-IAM trust policy changes can take up to 30 seconds to propagate. Wait briefly and re-run `DESC CATALOG INTEGRATION` — the status should update. If it stays DISABLED, confirm **GLUE_AWS_IAM_USER_ARN** and **GLUE_AWS_EXTERNAL_ID** in the rendered trust JSON match the current `DESC` output exactly.
+IAM trust policy changes can take up to 30 seconds to propagate. Wait briefly and re-run **DESC CATALOG INTEGRATION** — the status should update. If it stays DISABLED, confirm **GLUE_AWS_IAM_USER_ARN** and **GLUE_AWS_EXTERNAL_ID** in the rendered trust JSON match the current **DESC** output exactly.
 
 ### Empty Windowed DTs
 
@@ -979,7 +1074,7 @@ GRANT USAGE ON WAREHOUSE <warehouse_name> TO ROLE <your_role>;
 
 ### Privileges Lost After CLD Recreate
 
-After `CREATE OR REPLACE DATABASE … LINKED_CATALOG`, re-apply integration usage:
+After **CREATE OR REPLACE DATABASE … LINKED_CATALOG**, re-apply integration usage:
 
 ```sql
 GRANT USAGE ON INTEGRATION glue_rest_catalog_int TO ROLE <your_role>;
@@ -989,7 +1084,7 @@ See the [BCR-2114 behavior change](https://docs.snowflake.com/en/release-notes/b
 
 ### DuckDB HIRC: Role Not Found
 
-HIRC does not support role names with hyphens. If you see "Role not found", ensure the role name uses underscores only — **duckdb_silver_reader** not `duckdb-silver-reader`.
+HIRC does not support role names with hyphens. If you see "Role not found", ensure the role name uses underscores only — **duckdb_silver_reader** not **duckdb-silver-reader**.
 
 ### DuckDB HIRC: Table Does Not Exist
 
@@ -1002,13 +1097,13 @@ SELECT * FROM balloon_silver.SILVER.DT_PLAYER_LEADERBOARD LIMIT 5;
 <!-- ------------------------ -->
 ## Task References
 
-Quick reference for all lab tasks. Run `task --list` from the repo root to see all available tasks with their current status.
+Quick reference for all lab tasks. Run **task --list** from the repo root to see all available tasks with their current status.
 
 ### Root Tasks
 
 | Task | Description |
 |------|-------------|
-| **setup** | Bootstrap: `uv sync` + copy `.env.example` → `.env` if missing |
+| **setup** | Bootstrap: **uv sync** + copy **.env.example** → **.env** if missing |
 | **check-tools** | Verify lab CLIs on PATH and run *aws sts get-caller-identity* |
 | **default** | List all available tasks |
 | **dashboard-local** | Optional dev: run the Streamlit dashboard locally (not the lab outcome) |
@@ -1085,6 +1180,7 @@ Starting from a raw event stream in AWS Glue, you connected Snowflake directly t
 - How to build Dynamic Iceberg Tables that transform bronze JSON into production-ready silver aggregates on a declared target lag
 - How to deploy a Streamlit in Snowflake dashboard that reads from silver Dynamic Tables
 - How to query Snowflake-managed Iceberg tables from DuckDB via the Horizon REST Catalog using a Programmatic Access Token
+- How intent-driven development with Cortex Code can replace manual coding workflows — and how refining prompts iteratively captures reusable engineering specifications
 
 ### Related Resources
 
