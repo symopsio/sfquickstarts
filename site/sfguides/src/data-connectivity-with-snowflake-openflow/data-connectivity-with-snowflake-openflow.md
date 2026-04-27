@@ -6,7 +6,8 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/data-connectivity-with-snowflake-openflow
+heroButtonOverrideLabel: View Documentation
+heroButtonOverrideLink: https://docs.snowflake.com/en/user-guide/data-integration/openflow/about
 
 # Data Connectivity with Snowflake Openflow
 <!-- ------------------------ -->
