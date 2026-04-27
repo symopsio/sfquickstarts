@@ -6,7 +6,8 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://www.snowflake.com/en/developers/guides/create-ai-agents-on-snowflake-with-lang-ai/#0
+heroButtonOverrideLabel: View Quickstart
+heroButtonOverrideLink: https://www.snowflake.com/en/developers/guides/create-ai-agents-on-snowflake-with-lang-ai/#0
 
 # Driving Customer Growth and Retention with Lang.ai
 <!-- ------------------------ -->
