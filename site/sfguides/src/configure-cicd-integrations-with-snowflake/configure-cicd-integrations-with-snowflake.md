@@ -71,11 +71,11 @@ Each first-party integration installs the Snowflake CLI (`snow`) on the CI runne
 
 ### Configuration Precedence
 
-Most CI/CD workflows combine a committed `config.toml` file (containing connection metadata but no credentials) with secrets injected through environment variables. The precedence rules are:
+Most CI/CD workflows combine a committed **config.toml** file (containing connection metadata but no credentials) with secrets injected through environment variables. The precedence rules are:
 
 1. Command-line parameters override everything.
-2. Environment variables targeting a specific connection parameter (e.g. `SNOWFLAKE_CONNECTIONS_MYCONNECTION_ACCOUNT`) override `config.toml`.
-3. Values defined in `config.toml` are used when no override is provided.
+2. Environment variables targeting a specific connection parameter (e.g. `SNOWFLAKE_CONNECTIONS_MYCONNECTION_ACCOUNT`) override **config.toml**.
+3. Values defined in **config.toml** are used when no override is provided.
 4. Generic environment variables such as `SNOWFLAKE_USER` apply last.
 
 <!-- ------------------------ -->
@@ -130,7 +130,7 @@ Now let's create the GitHub Actions workflow that uses the Snowflake CLI GitHub 
 
 ### Create the Workflow File
 
-Create or update your workflow file (e.g. `.github/workflows/deploy.yml`):
+Create or update your workflow file (e.g. **.github/workflows/deploy.yml**):
 
 ```yaml
 name: Deploy to Snowflake
@@ -171,7 +171,7 @@ Here's what the code does:
 - Sets `id-token: write` permission, which is required for the runner to request a GitHub OIDC token
 - Uses `snowflakedb/snowflake-cli-action@v2.0.2` to install the Snowflake CLI and configure OIDC authentication
 - Runs `snow connection test -x` to verify the connection, then `snow dcm deploy` to deploy changes
-- The `-x` flag indicates a temporary connection (no `config.toml` required)
+- The `-x` flag indicates a temporary connection (no **config.toml** required)
 
 > **Note:** Pin the action to an immutable tag like `@v2.0.2` for reproducible pipelines. A floating `@v2` tag will be available in the future to auto-update to the latest `v2.x` release.
 
@@ -186,7 +186,7 @@ Push a commit to your `main` branch to trigger the workflow. In the GitHub Actio
 
 If OIDC is not available, you can use key-pair authentication. Store your private key as a GitHub secret and pass it through environment variables.
 
-**Temporary connection (no `config.toml`):**
+**Temporary connection (no config.toml):**
 
 ```yaml
 - name: Install Snowflake CLI
@@ -202,9 +202,9 @@ If OIDC is not available, you can use key-pair authentication. Store your privat
   run: snow connection test -x
 ```
 
-**Named connection (with `config.toml`):**
+**Named connection (with config.toml):**
 
-Commit a `config.toml` with an empty connection block:
+Commit a **config.toml** with an empty connection block:
 
 ```toml
 default_connection_name = "myconnection"
@@ -229,7 +229,7 @@ Then override the connection fields through environment variables:
   run: snow connection test
 ```
 
-> **Note:** When using named connections, environment variables follow the format `SNOWFLAKE_CONNECTIONS_<CONNECTION_NAME>_<KEY>`. The connection name must match the name in `config.toml` (uppercased).
+> **Note:** When using named connections, environment variables follow the format `SNOWFLAKE_CONNECTIONS_<CONNECTION_NAME>_<KEY>`. The connection name must match the name in **config.toml** (uppercased).
 
 ### Alternative: Password Authentication
 
@@ -316,7 +316,7 @@ Now let's create the Azure Pipeline that uses the Snowflake CLI Azure DevOps Ext
 
 ### Add a Configuration File to Your Repository
 
-Create a `config.toml` file at the root of your repository. This file contains connection metadata but no credentials:
+Create a **config.toml** file at the root of your repository. This file contains connection metadata but no credentials:
 
 ```toml
 [connections.default]
@@ -328,7 +328,7 @@ role = "<deployment_role>"
 
 ### Create the Pipeline
 
-Create or update your pipeline YAML file (e.g. `azure-pipelines.yml`):
+Create or update your pipeline YAML file (e.g. **azure-pipelines.yml**):
 
 ```yaml
 trigger:
@@ -359,7 +359,7 @@ steps:
 Here's what the code does:
 
 - Uses `ConfigureSnowflakeCLI@0` to install the Snowflake CLI and configure OIDC authentication through the Azure service connection
-- Copies `config.toml` to `~/.snowflake/config.toml` with secure permissions (`0600` on Linux/macOS)
+- Copies **config.toml** to **~/.snowflake/config.toml** with secure permissions (`0600` on Linux/macOS)
 - Runs `snow connection test` to verify the connection, then `snow dcm deploy` to deploy changes
 
 > **Note:** The `connectedServiceName` must match the service connection name you created in Azure DevOps. This is the same value used in the federated credential's subject identifier.
@@ -405,7 +405,7 @@ steps:
     displayName: Verify Snowflake connection
 ```
 
-> **Note:** When using named connections, environment variables follow the format `SNOWFLAKE_CONNECTIONS_<CONNECTION_NAME>_<KEY>`. The connection name must match the name in `config.toml` (uppercased).
+> **Note:** When using named connections, environment variables follow the format `SNOWFLAKE_CONNECTIONS_<CONNECTION_NAME>_<KEY>`. The connection name must match the name in **config.toml** (uppercased).
 
 ### Alternative: Password Authentication
 
