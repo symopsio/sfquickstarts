@@ -6,7 +6,8 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfguide-getting-started-with-cortex-analyst?_fsi=pU0VIAsc&_fsi=pU0VIAsc
+heroButtonOverrideLabel: View Quickstart
+heroButtonOverrideLink: https://www.snowflake.com/en/developers/guides/getting-started-with-cortex-analyst/#0
 
 # Building AI-powered BI apps using Snowflake Cortex Analyst
 <!-- ------------------------ -->

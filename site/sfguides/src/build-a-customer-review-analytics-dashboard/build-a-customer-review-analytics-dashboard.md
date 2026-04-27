@@ -6,7 +6,8 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/snowflake-demo-notebooks/blob/main/Avalanche-Customer-Review-Analytics/Avalanche-Customer-Review-Analytics.ipynb?_fsi=QzKQ5lY6&_fsi=QzKQ5lY6
+heroButtonOverrideLabel: View Quickstart
+heroButtonOverrideLink: https://www.snowflake.com/en/developers/guides/avalanche-customer-review-data-analytics/#0
 
 # Build a Customer Review Analytics Dashboard
 <!-- ------------------------ -->
