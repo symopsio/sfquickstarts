@@ -6,7 +6,8 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfguide-rag-chatbot-using-snowflake-and-fivetran/
+heroButtonOverrideLabel: View Quickstart
+heroButtonOverrideLink: https://www.snowflake.com/en/developers/guides/fivetran-vineyard-assistant-chatbot/#0
 
 # Build a RAG-based Chatbot using Fivetran and Snowflake
 <!-- ------------------------ -->

@@ -6,7 +6,8 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/sfquickstarts/tree/master/site/sfguides/src/siemens-industrial-edge-to-snowflake
+heroButtonOverrideLabel: Learn More
+heroButtonOverrideLink: https://www.snowflake.com/en/customers/all-customers/case-study/siemens-1/
 
 # Siemens Industrial Edge to Snowflake
 <!-- ------------------------ -->

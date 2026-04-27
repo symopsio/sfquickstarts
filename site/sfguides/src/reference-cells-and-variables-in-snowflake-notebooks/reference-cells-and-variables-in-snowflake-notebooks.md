@@ -6,8 +6,8 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://github.com/Snowflake-Labs/snowflake-demo-notebooks/tree/main/Reference%20cells%20and%20variables
-open in snowflake: https://www.snowflake.com/notebooks/?staticAppId=Reference_cells_and_variables
+heroButtonOverrideLabel: View Notebook
+heroButtonOverrideLink: https://www.snowflake.com/notebooks/?staticAppId=Reference_cells_and_variables
 
 # Reference cells and variables in Snowflake Notebooks
 <!-- ------------------------ -->
