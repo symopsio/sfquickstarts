@@ -487,6 +487,8 @@ LIMIT 10;
 
 If **task bronze:lakeformation-setup** ran successfully, skip this. Otherwise verify these four settings manually.
 
+> **Notebook users:** The interactive notebook includes the same four checks with annotated screenshots in **Step 2c: Verify Lake Formation Settings**.
+
 **1. Database mode:**
 
 Open **Lake Formation** → **Data catalog** → **Databases** → open **GLUE_DATABASE** → **Edit**. Confirm **Use only IAM access control for new tables** is unchecked.
@@ -525,7 +527,17 @@ End-to-end Snowflake command sequence (assumes tools verified and bronze loaded)
 | **task snowflake:describe-catalog-integration** | Print trust fields (API_AWS_IAM_USER_ARN + external ID) |
 | **task snowflake:render-glue-catalog-trust** | Render trust JSON using those fields |
 | **task snowflake:apply-glue-catalog-trust-from-rendered** | Apply rendered trust to SIGV4 IAM role |
+| **SELECT SYSTEM$VERIFY_CATALOG_INTEGRATION('glue_rest_catalog_int')** | Verify integration connects to Glue (expect `"success": true`) |
 | **snow sql --filename snowflake/lab/generated/02_cld_verify.generated.sql** | Create CLD and run discovery queries |
+
+> **Notebook alternative (ENABLED=FALSE flow):**
+>
+> | Step | Command | What it does |
+> |------|---------|-------------|
+> | 2a | **CREATE CATALOG INTEGRATION … ENABLED = FALSE** | Generate trust values without connecting to Glue |
+> | 2b | **DESC INTEGRATION** → **aws cloudformation deploy** | Extract trust values and deploy IAM + LF via CFN |
+> | 2c | Verify Lake Formation settings in AWS Console | Confirm CFN deployed correctly |
+> | 2d | **ALTER CATALOG INTEGRATION … SET ENABLED = TRUE** | Enable and verify with **SYSTEM$VERIFY_CATALOG_INTEGRATION** |
 
 <!-- ------------------------ -->
 ## Dynamic Iceberg Tables
@@ -544,7 +556,14 @@ With bronze readable through the CLD, add [Dynamic Iceberg Tables](https://docs.
 
 ### Easy Path — Interactive Notebook
 
-Open [dt_lab_guide.ipynb](https://github.com/Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines/blob/main/notebooks/dt_lab_guide.ipynb) in Snowflake Notebooks for an interactive walkthrough. The notebook covers each DT creation step with inline SQL execution and verification queries.
+Open [dt_lab_guide.ipynb](https://github.com/Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines/blob/main/notebooks/dt_lab_guide.ipynb) in Snowflake Notebooks for an interactive walkthrough. The notebook builds on the CLD Lab Guide and includes:
+
+- **CLD recap** — summarizes what was built in the previous chapter before diving into silver
+- **"Why Dynamic Iceberg Tables?"** — callout explaining DIT vs regular Dynamic Tables, TARGET_LAG, and Iceberg interoperability
+- **Cortex Code prompts** — generate the first DT SQL via Cmd+K, check refresh status via chat, and explore silver data with intent-driven prompts
+- **Teachable moment** — the Cortex Code prompt for `dt_player_leaderboard` may generate `TIMESTAMP_TZ`, which Iceberg doesn't support — workshoppers debug and fix it live
+- **"What Just Happened?"** — architecture summary of the bronze→silver pipeline
+- **Cleanup** — single `DROP DATABASE` to tear down all DTs
 
 Use the **Detailed Path** below for step-by-step shell commands.
 
@@ -567,6 +586,8 @@ task snowflake:print-env-hints
 ```
 
 > Dynamic Iceberg Tables use Snowflake Managed Storage — no external volume setup is required.
+
+> **Iceberg type limitation:** Iceberg tables do not support `TIMESTAMP_TZ`. Use `TIMESTAMP_LTZ` (maps to Iceberg `timestamptz`) or `TIMESTAMP_NTZ` (maps to Iceberg `timestamp`). If generated SQL uses `TIMESTAMP_TZ`, change it to `TIMESTAMP_LTZ(6)` or `TIMESTAMP_NTZ`.
 
 #### Generate and Apply DT SQL
 
@@ -619,6 +640,16 @@ Run all verification queries at once:
 ```bash
 snow sql --filename snowflake/lab/04_dt_verify_sample_queries.sql
 ```
+
+#### Quick Teardown
+
+To remove all silver DTs and their refresh schedules:
+
+```sql
+DROP DATABASE IF EXISTS balloon_silver;
+```
+
+DT refreshes stop automatically when the database is dropped. The external volume and S3 data are **not** deleted — remove those separately if needed.
 
 <!-- ------------------------ -->
 ## SiS Dashboard
