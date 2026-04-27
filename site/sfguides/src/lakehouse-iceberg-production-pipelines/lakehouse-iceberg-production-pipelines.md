@@ -314,7 +314,12 @@ This chapter creates the Glue Iceberg REST catalog integration, tightens IAM tru
 
 ### Easy Path — Interactive Notebook
 
-Open [cld_lab_guide.ipynb](https://github.com/Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines/blob/main/notebooks/cld_lab_guide.ipynb) in Snowflake Notebooks for an interactive walkthrough. The notebook covers the same steps with inline IAM policy output and live SQL execution.
+Open [cld_lab_guide.ipynb](https://github.com/Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines/blob/main/notebooks/cld_lab_guide.ipynb) in Snowflake Notebooks for an interactive walkthrough. The notebook uses:
+
+- **`ENABLED = FALSE`** on the catalog integration to break the IAM chicken-egg dependency — trust policy values are generated without connecting to Glue
+- A companion **CloudFormation template** ([cfn-snowflake-cld.yaml](https://github.com/Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines/blob/main/notebooks/cfn-snowflake-cld.yaml)) that deploys all IAM roles, Lake Formation registration, and permissions in a single stack
+- **Cortex Code prompts** embedded in each step — use Cmd+K or the chat sidebar to generate SQL and CLI commands from natural language
+- **`SYSTEM$VERIFY_CATALOG_INTEGRATION`** to validate connectivity before creating the CLD
 
 Follow the **Detailed Path** below for step-by-step shell commands.
 
@@ -333,6 +338,8 @@ task snowflake:create-glue-catalog-read-role
 This writes the IAM role ARN to **.aws-config/snowflake-glue-catalog-iam-role-arn.txt**. All subsequent lab tools read it automatically — no env var override needed.
 
 After this step, return to the Bronze chapter and run **task bronze:lakeformation-setup** to grant the SIGV4 role access via Lake Formation before proceeding.
+
+> **Notebook path (CloudFormation):** The interactive notebook uses a single CloudFormation template instead of individual **task** commands for IAM and Lake Formation setup. It creates the catalog integration as **ENABLED = FALSE** first, extracts trust values from **DESC INTEGRATION**, and passes them as stack parameters — eliminating the manual trust-render-apply cycle. See the notebook for details.
 
 #### Generate SQL
 
@@ -370,6 +377,8 @@ The generated SQL creates **glue_rest_catalog_int** (default name) with these se
 - **CATALOG_NAMESPACE** = **GLUE_DATABASE**
 - **SIGV4_IAM_ROLE** = ARN from **.aws-config/snowflake-glue-catalog-iam-role-arn.txt**
 
+> **Tip: Breaking the chicken-egg dependency.** The notebook creates the catalog integration with **ENABLED = FALSE**. This generates **API_AWS_IAM_USER_ARN** and **API_AWS_EXTERNAL_ID** immediately without requiring the IAM role to exist yet. After deploying the CloudFormation stack with the real trust values, the integration is enabled via **ALTER CATALOG INTEGRATION … SET ENABLED = TRUE**. This avoids a two-pass trust policy update.
+
 #### Describe and Capture Trust Fields
 
 Print catalog integration properties including the Snowflake-generated trust fields:
@@ -401,6 +410,16 @@ task snowflake:apply-glue-catalog-trust-from-rendered
 ```
 
 This updates the IAM role's trust policy to scope access to Snowflake's specific IAM user ARN and external ID. Alternatively, paste the rendered JSON from **.aws-config/snowflake-glue-catalog-trust-policy.rendered.json** directly in the IAM console under **Trust relationships**.
+
+#### Verify Catalog Integration
+
+After applying the trust policy, verify the integration can connect to Glue:
+
+```sql
+SELECT SYSTEM$VERIFY_CATALOG_INTEGRATION('glue_rest_catalog_int');
+```
+
+Expect `"success": true` in the JSON response. If it fails, check that the trust policy values match **DESC INTEGRATION** output exactly and that IAM propagation is complete (up to 30 seconds).
 
 #### Create Catalog-Linked Database
 
@@ -1011,6 +1030,15 @@ aws s3 rm "s3://$BRONZE_BUCKET_NAME/iceberg/" --recursive
 
 Lake Formation registrations and IAM roles created for LF are not removed by **bronze:cleanup** — delete those in the AWS console or via CLI as needed.
 
+> **Notebook users (CloudFormation):** If you used the notebook's CloudFormation template, a single command removes all IAM roles, policies, Lake Formation registration, and permissions:
+>
+> ```bash
+> aws cloudformation delete-stack --stack-name snowflake-cld-iam --region $AWS_REGION
+> aws cloudformation wait stack-delete-complete --stack-name snowflake-cld-iam --region $AWS_REGION
+> ```
+>
+> If deletion fails due to active Lake Formation dependencies, check the CloudFormation **Events** tab for the failed resource.
+
 ### Optional: Delete SIGV4 Lab Role
 
 If **task snowflake:create-glue-catalog-read-role** created the IAM role, remove it after Snowflake teardown:
@@ -1055,6 +1083,14 @@ SHOW ICEBERG TABLES IN SCHEMA balloon_game_events."ksampath_balloon_pops";
 ### Integration DISABLED After Trust Apply
 
 IAM trust policy changes can take up to 30 seconds to propagate. Wait briefly and re-run **DESC CATALOG INTEGRATION** — the status should update. If it stays DISABLED, confirm **GLUE_AWS_IAM_USER_ARN** and **GLUE_AWS_EXTERNAL_ID** in the rendered trust JSON match the current **DESC** output exactly.
+
+Use **SYSTEM$VERIFY_CATALOG_INTEGRATION** to test connectivity explicitly:
+
+```sql
+SELECT SYSTEM$VERIFY_CATALOG_INTEGRATION('glue_rest_catalog_int');
+```
+
+The JSON response includes error details when the trust policy or IAM permissions are misconfigured.
 
 ### Empty Windowed DTs
 
