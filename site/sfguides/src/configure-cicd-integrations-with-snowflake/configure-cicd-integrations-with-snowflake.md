@@ -16,8 +16,8 @@ CI/CD pipelines let you automate Snowflake deployments so that changes are trigg
 
 In this Quickstart, we'll walk through configuring two of those integrations:
 
-- **GitHub Actions** — using the `snowflakedb/snowflake-cli-action` GitHub Action
-- **Azure DevOps** — using the `ConfigureSnowflakeCLI@0` Azure Pipelines task
+- **GitHub Actions** — using the [snowflakedb/snowflake-cli-action](https://github.com/snowflakedb/snowflake-cli-action) GitHub Action
+- **Azure DevOps** — using the [ConfigureSnowflakeCLI@0](https://github.com/snowflakedb/snowflake-ado-extension) Azure Pipelines task
 
 Both integrations support workload identity federation (WIF) with OpenID Connect (OIDC), which means your pipelines can authenticate to Snowflake with short-lived tokens instead of long-lived secrets. We'll focus on OIDC as the recommended approach and cover key-pair and password alternatives briefly.
 
