@@ -5,7 +5,8 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://www.snowflake.com/en/developers/guides/intro-to-machine-learning-with-snowpark-ml-for-python/
+heroButtonOverrideLabel: View Quickstart
+heroButtonOverrideLink: https://www.snowflake.com/en/developers/guides/intro-to-machine-learning-with-snowpark-ml-for-python/
 
 # Managing ML Models from Iteration to Production with MLOps
 <!-- ------------------------ -->
