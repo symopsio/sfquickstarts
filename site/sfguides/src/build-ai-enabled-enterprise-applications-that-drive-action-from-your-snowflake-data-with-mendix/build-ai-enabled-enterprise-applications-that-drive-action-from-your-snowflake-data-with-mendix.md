@@ -6,7 +6,8 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://www.snowflake.com/en/developers/guides/mendix-data-loader/#0
+heroButtonOverrideLabel: View Quickstart
+heroButtonOverrideLink: https://www.snowflake.com/en/developers/guides/mendix-data-loader/#0
 
 # Build AI-Enabled Enterprise Applications That Drive Action From Your Snowflake Data With Mendix
 <!-- ------------------------ -->

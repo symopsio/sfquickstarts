@@ -6,7 +6,8 @@ environments: web
 language: en
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-fork repo link: https://app.hex.tech/hex-public/app/Hex-Snowpark-For-Data-Analysis-3ffappVMLojySLlVhKYYTH/latest
+heroButtonOverrideLabel: View Quickstart
+heroButtonOverrideLink: https://app.hex.tech/hex-public/app/Hex-Snowpark-For-Data-Analysis-3fFappVMLojySLlVhKYYTH/latest
 
 # Data Exploration & Analysis using Hex and Snowpark
 <!-- ------------------------ -->
