@@ -1,4 +1,4 @@
-author: Gilberto Hernandez
+author: Gilberto Hernandez, Oskar Lorek
 id: configure-cicd-integrations-with-snowflake
 categories: snowflake-site:taxonomy/solution-center/certification/quickstart, snowflake-site:taxonomy/product/data-engineering, snowflake-site:taxonomy/product/platform
 language: en
