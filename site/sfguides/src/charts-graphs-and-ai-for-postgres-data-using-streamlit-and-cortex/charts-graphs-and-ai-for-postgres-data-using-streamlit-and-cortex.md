@@ -6,7 +6,7 @@ environments: web
 status: Published
 language: en
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
-tags: Streamlit, Postgres, Cortex AI, IoT, Dashboard, Chatbot, Cortex Code
+tags: Streamlit, Postgres, AI, Cortex Analyst, IoT, Dashboard, Chatbot, Cortex Code
 
 # Charts, Graphs, and AI for Postgres Data Using Streamlit and Cortex
 <!-- ------------------------ -->
