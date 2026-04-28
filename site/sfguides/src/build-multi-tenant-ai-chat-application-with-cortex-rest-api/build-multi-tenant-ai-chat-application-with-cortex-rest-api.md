@@ -332,9 +332,11 @@ curl -N -X POST http://localhost:8000/v1/chat/stream \
 Snowflake returns an SSE error event — model not authorized for this role.
 
 <!-- ------------------------ -->
-## Bonus: RBAC for Tables and Cortex Agents
+## Bonus: Extending to Cortex Agents
 
-If you're extending this solution to include **Cortex Agents**, run `assets/03_bonus_table_agent_rbac.sql` to grant tenant roles access to the underlying data and agent endpoints.
+This guide focuses on the Cortex REST API for LLM chat. If you want to extend the same multi-tenant gateway to invoke **Cortex Agents** (which combine text-to-SQL, semantic search, and tool orchestration), the same RBAC pattern applies — grant each tenant role access to the agent and its underlying data.
+
+A reference SQL script is included at `assets/03_bonus_table_agent_rbac.sql` showing the required grants:
 
 | Grant Type | What It Enables |
 |-----------|----------------|
@@ -344,15 +346,11 @@ If you're extending this solution to include **Cortex Agents**, run `assets/03_b
 | `USAGE ON CORTEX AGENT` | Invoking Cortex Agents |
 | `USAGE ON CORTEX SEARCH SERVICE` | Semantic search |
 
-```sql
--- Only Alpha gets access to the RetailBot agent
-GRANT USAGE ON CORTEX AGENT RETAILBOT_DB.SUPPORT.RETAILBOT TO ROLE COCO_TENANT_ALPHA;
-
--- Grant Cortex Search service access
-GRANT USAGE ON CORTEX SEARCH SERVICE RETAILBOT_DB.SUPPORT.SUPPORT_SEARCH TO ROLE COCO_TENANT_ALPHA;
-```
-
 > **Tip:** To restrict an agent to only certain tenants, simply omit the `GRANT` for that role. Snowflake will return a permission error — no application code changes needed.
+
+To learn more about building Cortex Agents, see:
+- [Cortex Agent Documentation](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agent)
+- [Multi-Agent Orchestration with Snowflake Cortex MCP](https://www.snowflake.com/en/developers/guides/multi-agent-orchestration-with-snowflake-cortex-mcp-and-microsoft-ai-foundry/)
 
 <!-- ------------------------ -->
 ## Conclusion And Resources
