@@ -6,6 +6,7 @@ summary: Learn how to sync data from Postgres to Snowflake using a shared Apache
 environments: web
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
+tags: Postgres
 
 # Sync Data from Snowflake Postgres to Snowflake with Iceberg and pg_lake
 <!-- ------------------------ -->
