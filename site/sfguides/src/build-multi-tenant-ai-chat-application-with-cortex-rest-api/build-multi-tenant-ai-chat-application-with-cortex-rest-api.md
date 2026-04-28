@@ -28,6 +28,12 @@ By the end, you'll have a working FastAPI gateway and Streamlit chat interface w
 
 ![Architecture](assets/architecture.png)
 
+### Demo
+
+<video id="demo-video" autoplay controls muted>
+    <source src="assets/multi_tenant_demo.mp4" type="video/mp4">
+</video>
+
 ### Prerequisites
 
 - Basic familiarity with Python, REST APIs, and terminal commands
