@@ -10,7 +10,7 @@ class Tenant(BaseModel):
     name: str
     snowflake_role: str
     snowflake_user: str = ""
-    default_model: str = "claude-3-7-sonnet"
+    default_model: str = "claude-4-sonnet"
     allowed_models: list[str] = Field(default_factory=list)
     system_prompt: str = ""
     rate_limit_rpm: int = 60
@@ -46,24 +46,24 @@ _beta_jwt = JWTGenerator(
 
 _tenant_alpha = Tenant(
     tenant_id="tenant-alpha",
-    name="Startup Alpha",
+    name="User Alpha",
     snowflake_role="COCO_TENANT_ALPHA",
     snowflake_user=settings.alpha_snowflake_user,
-    default_model="claude-3-7-sonnet",
-    allowed_models=["claude-3-7-sonnet", "claude-4-sonnet", "mistral-large2"],
-    system_prompt="You are a helpful AI assistant for Startup Alpha.",
+    default_model="claude-4-sonnet",
+    allowed_models=["claude-4-sonnet", "mistral-large2"],
+    system_prompt="You are a helpful AI assistant for User Alpha.",
     rate_limit_rpm=60,
 )
 _tenant_alpha.set_jwt_generator(_alpha_jwt)
 
 _tenant_beta = Tenant(
     tenant_id="tenant-beta",
-    name="Startup Beta",
+    name="User Beta",
     snowflake_role="COCO_TENANT_BETA",
     snowflake_user=settings.beta_snowflake_user,
     default_model="openai-gpt-4.1",
     allowed_models=["openai-gpt-4.1", "llama3.1-70b", "deepseek-r1"],
-    system_prompt="You are a helpful AI assistant for Startup Beta.",
+    system_prompt="You are a helpful AI assistant for User Beta.",
     rate_limit_rpm=30,
 )
 _tenant_beta.set_jwt_generator(_beta_jwt)

@@ -52,7 +52,7 @@ Clone the repository and run the setup script, which creates a virtual environme
 
 ```bash
 git clone https://github.com/Snowflake-Labs/sfquickstarts.git
-cd sfquickstarts/site/sfguides/src/build-ai-chat-with-cortex-rest-api/assets
+cd sfquickstarts/site/sfguides/src/build-multi-tenant-ai-chat-application-with-cortex-rest-api/assets
 
 bash setup.sh
 ```
@@ -156,12 +156,11 @@ USE ROLE ACCOUNTADMIN;
 CALL SNOWFLAKE.MODELS.CORTEX_BASE_MODELS_REFRESH();
 ALTER ACCOUNT SET CORTEX_MODELS_ALLOWLIST = 'None';
 
--- Alpha gets premium models
-GRANT APPLICATION ROLE SNOWFLAKE."CORTEX-MODEL-ROLE-CLAUDE-3-7-SONNET" TO ROLE COCO_TENANT_ALPHA;
+-- Alpha models
 GRANT APPLICATION ROLE SNOWFLAKE."CORTEX-MODEL-ROLE-CLAUDE-4-SONNET" TO ROLE COCO_TENANT_ALPHA;
 GRANT APPLICATION ROLE SNOWFLAKE."CORTEX-MODEL-ROLE-MISTRAL-LARGE2" TO ROLE COCO_TENANT_ALPHA;
 
--- Beta gets cost-efficient models
+-- Beta models
 GRANT APPLICATION ROLE SNOWFLAKE."CORTEX-MODEL-ROLE-OPENAI-GPT-4.1" TO ROLE COCO_TENANT_BETA;
 GRANT APPLICATION ROLE SNOWFLAKE."CORTEX-MODEL-ROLE-LLAMA3.1-70B" TO ROLE COCO_TENANT_BETA;
 GRANT APPLICATION ROLE SNOWFLAKE."CORTEX-MODEL-ROLE-DEEPSEEK-R1" TO ROLE COCO_TENANT_BETA;
@@ -202,7 +201,7 @@ Maps API keys to Snowflake users and roles. Each tenant has:
 |-------|-------|------|
 | Snowflake User | `COCO_USER_ALPHA` | `COCO_USER_BETA` |
 | Snowflake Role | `COCO_TENANT_ALPHA` | `COCO_TENANT_BETA` |
-| Default Model | `claude-3-7-sonnet` | `openai-gpt-4.1` |
+| Default Model | `claude-4-sonnet` | `openai-gpt-4.1` |
 | Rate Limit | 60 req/min | 30 req/min |
 | API Key | `sk-alpha-secret-key-001` | `sk-beta-secret-key-001` |
 
@@ -243,7 +242,7 @@ The Streamlit app (`streamlit_app/app_pages/chat.py`) provides a ChatGPT-like in
 
 ### Flow
 
-1. User picks a **tenant** (Alpha or Beta) in the sidebar — this selects the API key and available models
+1. User picks a **tenant** (User Alpha or User Beta) in the sidebar — this selects the API key and available models
 2. User types a message in the chat input
 3. The full conversation history is sent to the gateway via `POST /v1/chat/stream`
 4. The gateway generates a per-tenant JWT and forwards to Cortex
@@ -299,14 +298,14 @@ Open `http://localhost:8501` in your browser.
 curl -N -X POST http://localhost:8000/v1/chat/stream \
   -H "Content-Type: application/json" \
   -H "X-API-Key: sk-alpha-secret-key-001" \
-  -d '{"message": "What is Snowflake Cortex?", "model": "claude-3-7-sonnet"}'
+  -d '{"message": "What is Snowflake Cortex?", "model": "claude-4-sonnet"}'
 ```
 
 You'll see SSE events streaming in real time:
 
 ```
 event: meta
-data: {"id": "coco_req_abc123", "model": "claude-3-7-sonnet", "tenant_id": "tenant-alpha"}
+data: {"id": "coco_req_abc123", "model": "claude-4-sonnet", "tenant_id": "tenant-alpha"}
 
 event: delta
 data: {"content": "Snowflake"}
@@ -327,7 +326,7 @@ Beta tries to use Claude (not granted):
 curl -N -X POST http://localhost:8000/v1/chat/stream \
   -H "Content-Type: application/json" \
   -H "X-API-Key: sk-beta-secret-key-001" \
-  -d '{"message": "Hello", "model": "claude-3-7-sonnet"}'
+  -d '{"message": "Hello", "model": "claude-4-sonnet"}'
 ```
 
 Snowflake returns an SSE error event — model not authorized for this role.
