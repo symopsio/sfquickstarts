@@ -17,33 +17,7 @@ Through this guide, you will build a **multi-tenant AI chat application** that s
 
 By the end, you'll have a working FastAPI gateway and Streamlit chat interface where two tenants (Alpha and Beta) each see only the models they're authorized to use, with unauthorized attempts blocked by Snowflake itself.
 
-```
-┌─────────────────────────────────────────────────┐
-│               Streamlit Chat UI                  │
-│         (tenant selector, model picker,          │
-│          multi-turn conversation)                 │
-└────────────────────┬────────────────────────────┘
-                     │ POST /v1/chat/stream
-                     │ Header: X-API-Key
-                     ▼
-┌─────────────────────────────────────────────────┐
-│              FastAPI Gateway                     │
-│                                                  │
-│  1. Validate API key → identify tenant           │
-│  2. Generate JWT from tenant's RSA private key   │
-│  3. Forward to Cortex with per-tenant JWT        │
-│  4. Stream SSE events back to client             │
-└────────────────────┬────────────────────────────┘
-                     │ Authorization: Bearer <JWT>
-                     ▼
-┌─────────────────────────────────────────────────┐
-│            Snowflake Cortex REST API             │
-│                                                  │
-│  • Validates JWT signature (registered pub key)  │
-│  • Checks Model RBAC (role → model grants)       │
-│  • Returns AI response as SSE stream             │
-└─────────────────────────────────────────────────┘
-```
+![Architecture](assets/architecture.png)
 
 ### Prerequisites
 
