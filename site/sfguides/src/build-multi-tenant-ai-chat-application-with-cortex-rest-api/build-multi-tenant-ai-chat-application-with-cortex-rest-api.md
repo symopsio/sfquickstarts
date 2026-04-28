@@ -15,6 +15,15 @@ fork repo link: https://github.com/sfc-gh-nashukla/sfquickstarts_multitenat
 
 Through this guide, you will build a **multi-tenant AI chat application** that streams responses in real time using Snowflake's Cortex REST API. The system uses **Key Pair JWT authentication** and **Snowflake-native Model RBAC** to control which AI models each tenant can access — all enforced by SQL GRANT statements, not application code.
 
+Each tenant is fully isolated at the Snowflake infrastructure level:
+
+- **Separate Snowflake user** — dedicated service user per tenant (e.g., `COCO_USER_ALPHA`)
+- **Separate Snowflake role** — dedicated role with its own grants (e.g., `COCO_TENANT_ALPHA`)
+- **Separate RSA key pair** — each tenant authenticates with their own private key
+- **Separate model grants** — Snowflake RBAC controls which AI models each tenant can call
+- **Separate rate limits** — per-tenant request throttling at the gateway
+- **Separate API keys** — gateway-level authentication per tenant
+
 By the end, you'll have a working FastAPI gateway and Streamlit chat interface where two tenants (Alpha and Beta) each see only the models they're authorized to use, with unauthorized attempts blocked by Snowflake itself.
 
 ![Architecture](assets/architecture.png)
