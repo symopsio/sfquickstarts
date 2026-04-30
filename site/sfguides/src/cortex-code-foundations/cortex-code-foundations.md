@@ -1,4 +1,4 @@
-author: Cortex Code Team
+author: Chase Ginther
 id: cortex-code-foundations
 language: en
 summary: A hands-on guide to installing, configuring, and using Cortex Code (CoCo) — Snowflake's AI coding agent — including CLI setup and workshop demos for building data pipelines, agents, and semantic views.
@@ -38,6 +38,8 @@ Before setting up the CLI, you can access Cortex Code directly from the Snowflak
 
 In Snowsight, click the **blue star icon** in the bottom right corner to open the Cortex Code panel.
 
+![Snowsight Home with CoCo Button](assets/snowsight_home_coco_button.png)
+
 This gives you immediate access to CoCo without any local installation and is useful for quick queries, schema exploration, and testing.
 
 <!-- ------------------------ -->
@@ -64,6 +66,10 @@ cortex --version
 ```
 
 ### Configure Your Snowflake Connection
+
+![Log In and Find Settings](assets/snowsight_login_settings.png)
+
+![Account Details Connection](assets/account_details_connection.png)
 
 Cortex Code uses the same connection files as SnowCLI, located at:
 
@@ -121,6 +127,10 @@ cortex --version
 ```
 
 ### Configure Your Snowflake Connection
+
+![Log In and Find Settings](assets/snowsight_login_settings.png)
+
+![Account Details Connection](assets/account_details_connection.png)
 
 On Windows, the config file is located at:
 
@@ -191,6 +201,8 @@ After connecting, you'll see the Cortex Code CLI interface. Test your connection
 ```
 What databases do I have access to?
 ```
+
+![Cortex Code CLI Interface](assets/cortex_code_cli_interface.png)
 
 <!-- ------------------------ -->
 ## Workshop Overview
