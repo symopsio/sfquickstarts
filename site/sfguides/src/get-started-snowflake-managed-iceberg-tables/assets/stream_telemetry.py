@@ -36,22 +36,15 @@ except ImportError:
     sys.exit(1)
 
 # Configuration
-SNOWFLAKE_ACCOUNT = os.getenv('SNOWFLAKE_ACCOUNT')
-SNOWFLAKE_USER = os.getenv('SNOWFLAKE_USER')
+SNOWFLAKE_CONNECTION = os.getenv('SNOWFLAKE_CONNECTION', 'default')
 SNOWFLAKE_DATABASE = os.getenv('SNOWFLAKE_DATABASE', 'FLEET_DB')
 SNOWFLAKE_SCHEMA = 'RAW'
 SNOWFLAKE_TABLE = 'VEHICLE_TELEMETRY_STREAM'
-SNOWFLAKE_WAREHOUSE = os.getenv('SNOWFLAKE_WAREHOUSE', 'FLEET_WH')
-SNOWFLAKE_ROLE = os.getenv('SNOWFLAKE_ROLE', 'ACCOUNTADMIN')
 
 MAX_DURATION_SECONDS = int(os.getenv('STREAMING_DURATION', 300))
 VEHICLE_COUNT = int(os.getenv('STREAMING_VEHICLE_COUNT', 50))
 EVENTS_PER_SECOND = float(os.getenv('STREAMING_EVENTS_PER_SECOND', 2))
 BATCH_SIZE = 10
-
-if not SNOWFLAKE_ACCOUNT or SNOWFLAKE_ACCOUNT == 'your_account_identifier':
-    print("ERROR: SNOWFLAKE_ACCOUNT is not configured in config.env")
-    sys.exit(1)
 
 running = True
 
@@ -173,28 +166,23 @@ def generate_telemetry_event(v):
 
 
 def create_connection():
-    print("Connecting to Snowflake...")
+    print(f"Connecting to Snowflake (connection: {SNOWFLAKE_CONNECTION})...")
     pat = os.getenv('SNOWFLAKE_PAT')
-    authenticator = os.getenv('SNOWFLAKE_AUTHENTICATOR', 'externalbrowser')
 
     conn_params = {
-        'account': SNOWFLAKE_ACCOUNT,
-        'user': SNOWFLAKE_USER,
+        'connection_name': SNOWFLAKE_CONNECTION,
         'database': SNOWFLAKE_DATABASE,
         'schema': SNOWFLAKE_SCHEMA,
-        'warehouse': SNOWFLAKE_WAREHOUSE,
-        'role': SNOWFLAKE_ROLE,
     }
 
     if pat:
         conn_params['password'] = pat
-        print("Using PAT authentication")
+        print("  Using PAT authentication")
     else:
-        conn_params['authenticator'] = authenticator
-        print(f"Using authenticator: {authenticator}")
+        print("  Using connection defaults from ~/.snowflake/config.toml")
 
     conn = snowflake.connector.connect(**conn_params)
-    print("Connected!")
+    print("  Connected!")
     return conn
 
 
@@ -215,12 +203,12 @@ def main():
     print("=" * 60)
     print("Snowflake-Managed Iceberg Tables — Streaming Simulator")
     print("=" * 60)
-    print(f"Account:   {SNOWFLAKE_ACCOUNT}")
-    print(f"Database:  {SNOWFLAKE_DATABASE}")
-    print(f"Table:     {SNOWFLAKE_SCHEMA}.{SNOWFLAKE_TABLE}")
-    print(f"Vehicles:  {VEHICLE_COUNT}")
-    print(f"Rate:      {EVENTS_PER_SECOND} events/sec")
-    print(f"Duration:  {MAX_DURATION_SECONDS} seconds")
+    print(f"Connection: {SNOWFLAKE_CONNECTION}")
+    print(f"Database:   {SNOWFLAKE_DATABASE}")
+    print(f"Table:      {SNOWFLAKE_SCHEMA}.{SNOWFLAKE_TABLE}")
+    print(f"Vehicles:   {VEHICLE_COUNT}")
+    print(f"Rate:       {EVENTS_PER_SECOND} events/sec")
+    print(f"Duration:   {MAX_DURATION_SECONDS} seconds")
     print("-" * 60)
     print("Press Ctrl+C to stop")
     print("-" * 60)

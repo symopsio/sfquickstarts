@@ -7,7 +7,7 @@ Connects DuckDB to Snowflake-managed Iceberg tables via Horizon Catalog
 and runs analytical queries — no data movement, no Snowflake compute.
 
 Prerequisites:
-  pip install duckdb python-dotenv
+  pip install duckdb requests python-dotenv
 
 Usage:
   python duckdb_interop.py
@@ -16,6 +16,7 @@ Usage:
 import os
 from pathlib import Path
 
+import requests
 from dotenv import load_dotenv
 
 # Load configuration
@@ -32,7 +33,8 @@ except ImportError:
     print("ERROR: duckdb is not installed. Run: pip install duckdb")
     raise SystemExit(1)
 
-SNOWFLAKE_ACCOUNT_URL = os.getenv('SNOWFLAKE_ACCOUNT', '').replace('.', '-')
+SNOWFLAKE_ACCOUNT_URL = os.getenv('SNOWFLAKE_ACCOUNT', '').lower().replace('.', '-').replace('_', '-')
+SNOWFLAKE_USER = os.getenv('SNOWFLAKE_USER', '')
 SNOWFLAKE_PAT = os.getenv('SNOWFLAKE_PAT', '')
 SNOWFLAKE_DATABASE = os.getenv('SNOWFLAKE_DATABASE', 'FLEET_DB')
 
@@ -41,6 +43,18 @@ if not SNOWFLAKE_PAT:
     print("Create a Programmatic Access Token in Snowsight:")
     print("  User Menu → My Profile → Programmatic Access Tokens")
     raise SystemExit(1)
+
+# Exchange PAT for an access token
+token_url = f"https://{SNOWFLAKE_ACCOUNT_URL}.snowflakecomputing.com/oauth/token"
+resp = requests.post(token_url, data={
+    "grant_type": "password",
+    "username": SNOWFLAKE_USER,
+    "password": SNOWFLAKE_PAT,
+})
+if resp.status_code != 200:
+    print(f"ERROR: Token exchange failed ({resp.status_code}): {resp.text}")
+    raise SystemExit(1)
+ACCESS_TOKEN = resp.text
 
 print("=" * 60)
 print("DuckDB ↔ Snowflake Horizon Catalog Interoperability")
@@ -54,14 +68,14 @@ conn = duckdb.connect()
 conn.execute("INSTALL iceberg; LOAD iceberg;")
 conn.execute(f"""
     CREATE OR REPLACE SECRET horizon_secret (
-        TYPE BEARER,
-        TOKEN '{SNOWFLAKE_PAT}'
+        TYPE ICEBERG,
+        TOKEN '{ACCESS_TOKEN}'
     );
 """)
 conn.execute(f"""
     ATTACH '{SNOWFLAKE_DATABASE}' AS horizon (
         TYPE ICEBERG,
-        ENDPOINT '{SNOWFLAKE_ACCOUNT_URL}.snowflakecomputing.com/polaris/api/catalog',
+        ENDPOINT 'https://{SNOWFLAKE_ACCOUNT_URL}.snowflakecomputing.com/polaris/api/catalog',
         SECRET horizon_secret
     );
 """)
@@ -69,12 +83,12 @@ print("Connected to Horizon Catalog!\n")
 
 # List tables
 print("--- Tables in RAW schema ---")
-conn.execute("SHOW TABLES IN horizon.RAW").show()
+conn.sql("SELECT table_name FROM information_schema.tables WHERE table_schema = 'RAW' AND table_catalog = 'horizon'").show()
 print()
 
 # Query vehicle registry
 print("--- Vehicle Registry (top 10) ---")
-conn.execute("""
+conn.sql("""
     SELECT VEHICLE_ID, MAKE, MODEL, YEAR, FLEET_REGION
     FROM horizon.RAW.VEHICLE_REGISTRY
     LIMIT 10
@@ -83,7 +97,7 @@ print()
 
 # Aggregate sensor readings
 print("--- Top 10 Vehicles by Fuel Consumption ---")
-conn.execute("""
+conn.sql("""
     SELECT
         VEHICLE_ID,
         COUNT(*) AS reading_count,

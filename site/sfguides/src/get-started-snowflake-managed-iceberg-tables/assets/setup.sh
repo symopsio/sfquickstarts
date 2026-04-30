@@ -38,6 +38,7 @@ fi
 source config.env
 
 SNOWFLAKE_CONNECTION="${SNOWFLAKE_CONNECTION:-default}"
+SNOWFLAKE_DATABASE="${SNOWFLAKE_DATABASE:-FLEET_DB}"
 
 # Check Snowflake CLI
 if ! command -v snow &> /dev/null; then
@@ -49,8 +50,6 @@ fi
 echo -e "${GREEN}Configuration loaded${NC}"
 echo "  Connection: $SNOWFLAKE_CONNECTION"
 echo "  Database:   $SNOWFLAKE_DATABASE"
-echo "  Warehouse:  $SNOWFLAKE_WAREHOUSE"
-echo "  Storage:    Snowflake-managed (SNOWFLAKE_MANAGED)"
 echo ""
 
 # Test connection
@@ -100,27 +99,8 @@ snow sql --connection="$SNOWFLAKE_CONNECTION" --query="PUT file://${SCRIPT_DIR}/
 echo -e "${GREEN}JSON files uploaded${NC}"
 echo ""
 
-# Step 4: Load maintenance logs
-echo -e "${YELLOW}Step 4: Loading maintenance logs into Iceberg table...${NC}"
-snow sql --connection="$SNOWFLAKE_CONNECTION" --query="
-COPY INTO ${SNOWFLAKE_DATABASE}.RAW.MAINTENANCE_LOGS (LOG_ID, VEHICLE_ID, LOG_TIMESTAMP, LOG_DATA, SOURCE_FILE)
-FROM (
-    SELECT
-        \$1:log_id::VARCHAR,
-        \$1:vehicle_id::VARCHAR,
-        \$1:log_timestamp::TIMESTAMP_NTZ,
-        \$1,
-        METADATA\$FILENAME
-    FROM @${SNOWFLAKE_DATABASE}.RAW.LOGS_STAGE
-)
-FILE_FORMAT = (TYPE = 'JSON' STRIP_OUTER_ARRAY = TRUE)
-PATTERN = '.*maintenance_log.*\.json';
-"
-echo -e "${GREEN}Maintenance logs loaded${NC}"
-echo ""
-
-# Step 5: Spark environment (optional)
-echo -e "${YELLOW}Step 5: Setting up Spark environment (optional)...${NC}"
+# Step 4: Spark environment (optional)
+echo -e "${YELLOW}Step 4: Setting up Spark environment (optional)...${NC}"
 if command -v conda &> /dev/null; then
     if ! conda env list | grep -q "fleet-spark"; then
         conda create -n fleet-spark python=3.10 -y

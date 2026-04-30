@@ -54,21 +54,29 @@ Download the companion assets from the [assets folder](https://github.com/Snowfl
 
 ### Configure Variables
 
-Edit the **config.env** file:
+Copy the template to create your configuration file:
+
+```bash
+cp config.env.template config.env
+```
+
+Then edit **config.env** with your values:
 
 ```bash
 # Required: Snowflake CLI connection name (run `snow connection list` to see yours)
 SNOWFLAKE_CONNECTION="default"
 
-# Required: Snowflake account details
+# Required: Account identifier and username (used by DuckDB/Spark interop scripts)
+# Find yours: SELECT CURRENT_ORGANIZATION_NAME() || '-' || CURRENT_ACCOUNT_NAME();
 SNOWFLAKE_ACCOUNT="your_account_identifier"
 SNOWFLAKE_USER="your_username"
-SNOWFLAKE_ROLE="ACCOUNTADMIN"
-SNOWFLAKE_WAREHOUSE="FLEET_WH"
-SNOWFLAKE_DATABASE="FLEET_DB"
+
+# Required: Programmatic Access Token (PAT)
+# Create one at: User Menu → My Profile → Programmatic Access Tokens
+SNOWFLAKE_PAT=""
 ```
 
-That's it — no cloud bucket, no IAM roles, no external volume configuration. Snowflake manages the Iceberg storage for you.
+The streaming script uses `SNOWFLAKE_CONNECTION` to connect via your existing Snowflake CLI configuration in `~/.snowflake/config.toml` — no need to duplicate credentials. The account and user fields are only needed by the DuckDB and Spark interoperability scripts to construct the Horizon Catalog endpoint URL.
 
 > **Note**: Make sure your Snowflake CLI connection is configured. If you haven't set one up yet, run:
 > ```bash
@@ -110,7 +118,7 @@ You should see four Iceberg tables in the **RAW** schema and two Dynamic Tables 
 <!-- ------------------------ -->
 ## Create Snowflake-Managed Iceberg Tables
 
-Let's take a closer look at the Iceberg tables the setup script created. Understanding the DDL is important because it shows how simple it is to create Iceberg tables with Snowflake-managed storage.
+Let's take a closer look at the Iceberg tables the setup script created. The DDL for these tables lives in **02_create_iceberg_tables.sql**. Understanding it is important because it shows how simple it is to create Iceberg tables with Snowflake-managed storage.
 
 ### What Makes These Tables "Iceberg"?
 
@@ -424,7 +432,7 @@ ALTER DYNAMIC TABLE FLEET_DB.ANALYTICS.DAILY_FLEET_SUMMARY REFRESH;
 
 -- Check refresh history — look at the refresh_action column
 SELECT name, refresh_action, state, refresh_start_time
-FROM TABLE(INFORMATION_SCHEMA.DYNAMIC_TABLE_REFRESH_HISTORY())
+FROM TABLE(FLEET_DB.INFORMATION_SCHEMA.DYNAMIC_TABLE_REFRESH_HISTORY())
 WHERE name IN ('TELEMETRY_ENRICHED', 'DAILY_FLEET_SUMMARY')
 ORDER BY refresh_start_time DESC
 LIMIT 10;
@@ -508,11 +516,13 @@ Now let's create an agent that uses the semantic view:
 
 ### Ask Questions in Snowflake Intelligence
 
-1. Navigate to **AI & ML → Snowflake Intelligence**
+1. Navigate to **AI & ML → Agents** and click the **Snowflake Intelligence** tab
 
-2. Select the **Fleet Analytics Agent** from the agent selector
+2. Click **Add existing agent**, then select the **fleet_agent** you just created
 
-3. Try asking questions like:
+3. Once added, open **Snowflake Intelligence** from the left navigation menu and select the **Fleet Analytics Agent**
+
+4. Try asking questions like:
 
 - "What are the top 5 fleet regions by average speed?"
 - "Show me vehicles with critical engine health events"
@@ -536,54 +546,28 @@ DuckDB is a lightweight, in-process analytical database. It supports the Iceberg
 
 ### Install DuckDB
 
+If you've deactivated the virtual environment, reactivate it first (`source fleet_venv/bin/activate`). Then install DuckDB:
+
 ```bash
-pip install duckdb
+pip install duckdb requests
 ```
 
-That's it. No Java, no JARs, no Conda environments.
+### Run the DuckDB Interoperability Script
 
-### Connect to Horizon Catalog
+The companion script **duckdb_interop.py** connects DuckDB to your Snowflake-managed Iceberg tables via Horizon Catalog. It reads your connection details and PAT from **config.env**, so no extra configuration is needed:
 
-Create a Python script or run the following in a Python session. You'll need a [programmatic access token (PAT)](https://docs.snowflake.com/en/user-guide/programmatic-access-token) for authentication:
-
-```python
-import duckdb
-
-# Configuration — update these with your Snowflake details
-SNOWFLAKE_ACCOUNT_URL = "your-org-your-account"   # e.g., "myorg-myaccount"
-SNOWFLAKE_PAT = "your-programmatic-access-token"
-SNOWFLAKE_DATABASE = "FLEET_DB"
-
-# Connect DuckDB to Horizon Catalog
-conn = duckdb.connect()
-conn.execute("INSTALL iceberg; LOAD iceberg;")
-
-conn.execute(f"""
-    CREATE OR REPLACE SECRET horizon_secret (
-        TYPE BEARER,
-        TOKEN '{SNOWFLAKE_PAT}'
-    );
-""")
-
-conn.execute(f"""
-    ATTACH '{SNOWFLAKE_DATABASE}' AS horizon (
-        TYPE ICEBERG,
-        ENDPOINT '{SNOWFLAKE_ACCOUNT_URL}.snowflakecomputing.com/polaris/api/catalog',
-        SECRET horizon_secret
-    );
-""")
-
-print("Connected to Horizon Catalog!")
+```bash
+python duckdb_interop.py
 ```
 
-Here's what the code does:
+Here's what the script does:
 
 - Installs and loads the DuckDB Iceberg extension
 - Creates a bearer token secret using your Snowflake PAT
 - Attaches to your Snowflake database through the Horizon Iceberg REST Catalog API
 - The `ENDPOINT` points to Snowflake's built-in Polaris endpoint — no separate catalog server needed
 
-### Query Iceberg Tables from DuckDB
+The script runs several queries to demonstrate interoperability. Here's a look at what it executes:
 
 ```python
 # List tables visible through Horizon Catalog
@@ -596,16 +580,16 @@ conn.execute("""
     LIMIT 10
 """).show()
 
-# Query sensor readings — time-series data
+# Aggregate sensor readings by vehicle
 conn.execute("""
     SELECT
         VEHICLE_ID,
-        READING_TIMESTAMP,
-        ENGINE_TEMP_F,
-        OIL_PRESSURE_PSI,
-        FUEL_CONSUMPTION_GPH
+        COUNT(*) AS reading_count,
+        ROUND(AVG(ENGINE_TEMP_F), 1) AS avg_engine_temp,
+        ROUND(AVG(FUEL_CONSUMPTION_GPH), 2) AS avg_fuel_gph
     FROM horizon.RAW.SENSOR_READINGS
-    ORDER BY READING_TIMESTAMP DESC
+    GROUP BY VEHICLE_ID
+    ORDER BY avg_fuel_gph DESC
     LIMIT 10
 """).show()
 ```
@@ -613,23 +597,6 @@ conn.execute("""
 DuckDB is reading directly from the Iceberg files managed by Snowflake. No data was copied. No Snowflake warehouse was used. The data is in an open format, and any engine that speaks Iceberg can read it.
 
 > **Tip**: DuckDB reads VARIANT columns as strings. You can use DuckDB's `json_extract` function to parse nested fields from VARIANT data.
-
-### Run Analytical Queries
-
-```python
-# Aggregate sensor readings by vehicle
-conn.execute("""
-    SELECT
-        VEHICLE_ID,
-        COUNT(*) AS reading_count,
-        ROUND(AVG(ENGINE_TEMP_F), 1) AS avg_engine_temp,
-        ROUND(AVG(FUEL_CONSUMPTION_GPH), 2) AS avg_fuel_consumption
-    FROM horizon.RAW.SENSOR_READINGS
-    GROUP BY VEHICLE_ID
-    ORDER BY avg_fuel_consumption DESC
-    LIMIT 10
-""").show()
-```
 
 This is the core value proposition of Snowflake-managed Iceberg tables: your data lives in an open format managed by Snowflake, but it's accessible from any compatible engine.
 
@@ -640,19 +607,14 @@ For teams that rely on Apache Spark, the same Horizon Catalog endpoint works wit
 
 ### Set Up the Spark Environment
 
-The setup script created a Conda environment with Spark and all necessary dependencies:
+The setup script created a Conda environment with Spark and all necessary dependencies. Deactivate the virtual environment if it's still active, then activate the Spark environment, install dependencies, and launch the notebook:
 
 ```bash
+deactivate
 conda activate fleet-spark
+pip install pyspark==4.0.0 jupyter python-dotenv requests
 jupyter notebook spark_iceberg_interop.ipynb
 ```
-
-> **Note**: If the Conda environment wasn't created during setup (e.g., Conda wasn't installed), you can create it manually:
-> ```bash
-> conda create -n fleet-spark python=3.10 -y
-> conda activate fleet-spark
-> pip install pyspark==4.0.0 jupyter python-dotenv
-> ```
 
 ### Connect Spark to Horizon Catalog
 
