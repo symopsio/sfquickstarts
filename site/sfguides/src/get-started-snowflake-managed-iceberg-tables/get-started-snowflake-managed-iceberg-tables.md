@@ -1,4 +1,4 @@
-author: Gilberto Hernandez
+author: Gilberto Hernandez, Scott Tealß
 id: get-started-snowflake-managed-iceberg-tables
 categories: snowflake-site:taxonomy/solution-center/certification/quickstart, snowflake-site:taxonomy/product/data-engineering, snowflake-site:taxonomy/product/platform, snowflake-site:taxonomy/snowflake-feature/apache-iceberg, snowflake-site:taxonomy/snowflake-feature/lakehouse-analytics, snowflake-site:taxonomy/snowflake-feature/ingestion, snowflake-site:taxonomy/snowflake-feature/interoperable-storage
 language: en
