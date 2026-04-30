@@ -67,10 +67,6 @@ cortex --version
 
 ### Configure Your Snowflake Connection
 
-![Log In and Find Settings](assets/snowsight_login_settings.png)
-
-![Account Details Connection](assets/account_details_connection.png)
-
 Cortex Code uses the same connection files as SnowCLI, located at:
 
 ```
@@ -91,6 +87,10 @@ password  = "<YOUR_DEMO_PAT>"
 role      = "<YOUR_DEMO_ROLE>"
 warehouse = "<YOUR_DEMO_WAREHOUSE>"
 ```
+
+![Log In and Find Settings](assets/snowsight_login_settings.png)
+
+![Account Details Connection](assets/account_details_connection.png)
 
 ### Create the Config File 
 
@@ -128,10 +128,6 @@ cortex --version
 
 ### Configure Your Snowflake Connection
 
-![Log In and Find Settings](assets/snowsight_login_settings.png)
-
-![Account Details Connection](assets/account_details_connection.png)
-
 On Windows, the config file is located at:
 
 ```
@@ -150,6 +146,10 @@ password  = "<YOUR_DEMO_PAT>"
 role      = "<YOUR_DEMO_ROLE>"     # e.g. Need a role for connection
 warehouse = "<YOUR_DEMO_WAREHOUSE>"
 ```
+
+![Log In and Find Settings](assets/snowsight_login_settings.png)
+
+![Account Details Connection](assets/account_details_connection.png)
 
 ### Create the Config File
 
