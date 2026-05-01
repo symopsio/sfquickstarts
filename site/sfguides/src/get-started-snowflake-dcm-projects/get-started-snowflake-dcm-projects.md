@@ -334,7 +334,6 @@ Before deploying changes, always run a **Plan** first. A Plan is a dry-run that 
 1. You should see the DCM control panel in the first tab in the bottom panel. Select the project **get-started-snowflake-dcm-projects/DCM_Projects_Get_Started**.
 2. The `DCM_DEV` target should already be selected (it's the default in the manifest).
 3. Click on the target profile to verify it uses `DCM_PROJECT_DEV` and the `DEV` templating configuration.
-4. If you'd rather not edit `manifest.yml`, you can override `account_identifier` and `user` right here in the target profile panel instead.
 
 ![DCM control panel with project selected](assets/select_project.png)
 
