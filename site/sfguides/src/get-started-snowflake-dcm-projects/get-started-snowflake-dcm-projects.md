@@ -103,19 +103,7 @@ GRANT DATABASE ROLE SNOWFLAKE.DATA_METRIC_USER TO ROLE dcm_developer;
 GRANT EXECUTE DATA METRIC FUNCTION ON ACCOUNT TO ROLE dcm_developer;
 ```
 
-### 4. Create a Warehouse (Optional)
-
-If you don't have a warehouse available, create one:
-
-```sql
-CREATE WAREHOUSE IF NOT EXISTS dcm_wh
-WITH
-    WAREHOUSE_SIZE = 'XSMALL'
-    AUTO_SUSPEND = 300
-    COMMENT = 'For Quickstart Demo of DCM Projects';
-```
-
-### 5. Create the DCM Project Object
+### 4. Create the DCM Project Object
 
 ```sql
 USE ROLE dcm_developer;
@@ -284,7 +272,7 @@ JOIN dcm_demo_1{{env_suffix}}.raw.customer c ON oh.customer_id = c.customer_id
 JOIN dcm_demo_1{{env_suffix}}.raw.truck t ON oh.truck_id = t.truck_id;
 ```
 
-> **Why `INITIALIZE = ON_SCHEDULE`?** By default, dynamic tables use `INITIALIZE = ON_CREATE`, which triggers a synchronous refresh at creation time — if that refresh fails, the `CREATE` statement fails too. In a CI/CD pipeline (e.g., GitHub Actions running `snow dcm deploy`), this means a deployment can fail because upstream tables are empty or data dependencies aren't yet met. Setting `INITIALIZE = ON_SCHEDULE` defers the first refresh to the background scheduler, so the `CREATE` always succeeds and the dynamic table is populated once its source data is ready. This is the recommended pattern for automated, multi-environment deployments.
+> **Why `INITIALIZE = ON_SCHEDULE`?** By default, dynamic tables use `INITIALIZE = ON_CREATE`, which runs a full synchronous refresh during the `CREATE` statement. When a project creates many tables at once, those synchronous refreshes can make deployments slow. `INITIALIZE = ON_SCHEDULE` skips the refresh at creation time and lets DCM finish the deployment quickly — each dynamic table populates itself in the background on its normal schedule. This is the recommended pattern for DCM deployments where speed and predictability matter most.
 
 ### Macros
 
@@ -346,7 +334,7 @@ Before deploying changes, always run a **Plan** first. A Plan is a dry-run that 
 1. You should see the DCM control panel in the first tab in the bottom panel. Select the project **get-started-snowflake-dcm-projects/DCM_Projects_Get_Started**.
 2. The `DCM_DEV` target should already be selected (it's the default in the manifest).
 3. Click on the target profile to verify it uses `DCM_PROJECT_DEV` and the `DEV` templating configuration.
-4. Override the templating value for `user` with your own Snowflake username.
+4. The manifest values are pre-filled. If your account identifier or Snowflake username differs, override the templating values for `account_identifier` and `user` here in the target profile panel.
 
 ![DCM control panel with project selected](assets/select_project.png)
 
@@ -410,18 +398,13 @@ The script inserts data into the raw tables: trucks, menu items, customers, inve
 
 ### 2. Refresh Dynamic Tables
 
-Because all dynamic tables use `INITIALIZE = ON_SCHEDULE`, they were created without data. The script triggers the first refresh manually:
+Because all dynamic tables use `INITIALIZE = ON_SCHEDULE`, they were created without data. Use `EXECUTE DCM PROJECT ... REFRESH ALL` to kick off the first refresh of every DT the project manages in one statement:
 
 ```sql
-ALTER DYNAMIC TABLE DCM_DEMO_1_DEV.ANALYTICS.ENRICHED_ORDER_DETAILS REFRESH;
-ALTER DYNAMIC TABLE DCM_DEMO_1_DEV.ANALYTICS.MENU_ITEM_POPULARITY REFRESH;
-ALTER DYNAMIC TABLE DCM_DEMO_1_DEV.ANALYTICS.CUSTOMER_SPENDING_SUMMARY REFRESH;
+EXECUTE DCM PROJECT DCM_DEMO.PROJECTS.DCM_PROJECT_DEV REFRESH ALL;
 ```
 
-> **CLI Alternative:** You can refresh all dynamic tables in the project at once:
-> ```
-> snow dcm refresh --target DCM_DEV
-> ```
+DCM triggers refreshes in dependency order — upstream tables refresh before downstream ones.
 
 ### 3. Verify
 
@@ -444,14 +427,7 @@ When you're done, open `scripts/03_cleanup.sql` in a Snowsight worksheet and run
 
 ```sql
 USE ROLE dcm_developer;
-
-DROP DATABASE IF EXISTS dcm_demo_1_dev;
-DROP WAREHOUSE IF EXISTS dcm_demo_1_wh_dev;
-
-DROP ROLE IF EXISTS dcm_demo_1_dev_read;
-DROP ROLE IF EXISTS dev_team_1_owner_dev;
-DROP ROLE IF EXISTS dev_team_1_developer_dev;
-DROP ROLE IF EXISTS dev_team_1_usage_dev;
+EXECUTE DCM PROJECT dcm_demo.projects.dcm_project_dev PURGE;
 
 USE ROLE ACCOUNTADMIN;
 DROP DCM PROJECT IF EXISTS dcm_demo.projects.dcm_project_dev;
@@ -459,7 +435,6 @@ DROP SCHEMA IF EXISTS dcm_demo.projects;
 DROP DATABASE IF EXISTS dcm_demo;
 
 DROP ROLE IF EXISTS dcm_developer;
-DROP WAREHOUSE IF EXISTS dcm_wh;
 ```
 
 <!-- ------------------------ -->
@@ -473,6 +448,12 @@ In this guide, you learned how to:
 - **Plan a deployment** to dry-run and preview all changes before applying them
 - **Deploy a project** to create databases, schemas, tables, dynamic tables, views, roles, grants, and data quality expectations in one operation
 - **Attach data quality expectations** using Data Metric Functions to monitor data quality declaratively
+
+### What's Next
+
+Ready for Level 2? Continue the series:
+
+- **Part 2 — [Build Data Pipelines with Snowflake DCM Projects](https://www.snowflake.com/en/developers/guides/build-data-pipelines-with-snowflake-dcm-projects/)** — split platform infrastructure from transformation pipelines and build a medallion architecture with Dynamic Tables.
 
 ### Related Resources
 - [DCM Projects Documentation](https://docs.snowflake.com/en/user-guide/dcm-projects/dcm-projects-overview)
