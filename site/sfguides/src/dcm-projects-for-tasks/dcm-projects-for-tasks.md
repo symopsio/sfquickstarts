@@ -29,7 +29,7 @@ You'll define a fifteen-task demo graph that shows off every interesting Task fe
 - **DMF quality gate** that routes rows to a target or quarantine table based on data metric function results
 - **Overlap policy** on the root task — the new `OVERLAP_POLICY` parameter gives you granular control over concurrent graph execution
 
-Along the way, you'll see two new DCM early-access features that make Tasks a first-class citizen of the DCM Project model:
+Along the way, you'll see two DCM features that make Tasks a first-class citizen of the DCM Project model:
 
 - **`DEFINE TASK ... STARTED | SUSPENDED`** — declare the target state of every task so you never need an `ALTER TASK ... RESUME` post-script
 - **`DEFINE PROCEDURE`** — manage SQL stored procedures through DCM Plan & Deploy alongside the tasks that call them
