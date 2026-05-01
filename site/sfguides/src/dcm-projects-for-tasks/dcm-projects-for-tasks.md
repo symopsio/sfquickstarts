@@ -1,7 +1,7 @@
-author: Yoav Ostrinsky
+author: Charlie Hammond, Jan Sommerfeld, Gilberto Hernandez, Yoav Ostrinsky
 id: dcm-projects-for-tasks
 summary: Learn how to use DCM Projects to define, deploy, and manage a complex task graph — including a finalizer task that emails a run summary and a DMF-backed quality gate that routes rows into target or quarantine tables.
-categories: snowflake-site:taxonomy/solution-center/certification/quickstart, snowflake-site:taxonomy/product/data-engineering, snowflake-site:taxonomy/snowflake-feature/tasks
+categories: snowflake-site:taxonomy/solution-center/certification/quickstart, snowflake-site:taxonomy/product/platform, snowflake-site:taxonomy/product/data-engineering, snowflake-site:taxonomy/snowflake-feature/tasks
 environments: web
 status: Published
 language: en
@@ -16,7 +16,7 @@ In the [Get Started with Snowflake DCM Projects](https://www.snowflake.com/en/de
 
 In this guide, you'll focus on **Tasks and task graphs** — the orchestration layer that drives scheduled and event-driven work across your pipeline.
 
-Task graphs (directed acyclic graphs of Tasks) are how most production Snowflake pipelines coordinate sequences of work: a root task kicks off every run, child tasks depend on their predecessors, streams and return values can gate downstream execution, and a finalizer closes out the run. Managing that whole graph as code — with retries, schedules, warehouse bindings, and config values promoted across environments — is exactly what DCM Projects were built for.
+Task graphs (DAGs, or directed acyclic graphs, of Tasks — meaning dependencies flow in one direction and no task can loop back to itself) are how most production Snowflake pipelines coordinate sequences of work: a root task kicks off every run, child tasks depend on their predecessors, streams and return values can gate downstream execution, and a finalizer closes out the run. Managing that whole graph as code — with retries, schedules, warehouse bindings, and config values promoted across environments — becomes much easier to maintain as a DCM Project.
 
 You'll define a fifteen-task demo graph that shows off every interesting Task feature in one place:
 
@@ -34,7 +34,7 @@ Along the way, you'll see two new DCM early-access features that make Tasks a fi
 - **`DEFINE TASK ... STARTED | SUSPENDED`** — declare the target state of every task so you never need an `ALTER TASK ... RESUME` post-script
 - **`DEFINE PROCEDURE`** — manage SQL stored procedures through DCM Plan & Deploy alongside the tasks that call them
 
-> **Note:** DCM Projects is currently in Public Preview. `DEFINE TASK ... STARTED`, `DEFINE PROCEDURE`, and a few other extensions are in Private Preview — see the [DCM Projects extended capabilities](https://docs.snowflake.com/en/LIMITEDACCESS/dcm-projects/dcm-projects-early-access) doc for the current list.
+> **Note:** DCM Projects is currently in Public Preview. See the [DCM Projects extended capabilities](https://docs.snowflake.com/en/dcm-projects/dcm-projects-early-access) doc for additional capabilities.
 
 ### Prerequisites
 - Basic knowledge of Snowflake concepts (databases, schemas, tables, roles)
@@ -42,7 +42,7 @@ Along the way, you'll see two new DCM early-access features that make Tasks a fi
 - Completion of [Get Started with Snowflake DCM Projects](https://www.snowflake.com/en/developers/guides/get-started-snowflake-dcm-projects/) is recommended
 
 ### What You'll Learn
-- How to define every kind of Task feature declaratively with `DEFINE TASK`
+- How to define a range of Task features declaratively with `DEFINE TASK`
 - How to use the new `STARTED | SUSPENDED` target-state property to control task state through DCM deployments
 - How to manage SQL procedures used by tasks with `DEFINE PROCEDURE`
 - How to build a finalizer task that sends a plain-text JSON email summary for every graph run
@@ -146,7 +146,7 @@ USE ROLE dcm_developer;
 CREATE DATABASE IF NOT EXISTS dcm_demo;
 CREATE SCHEMA IF NOT EXISTS dcm_demo.projects;
 
-CREATE OR REPLACE DCM PROJECT dcm_demo.projects.dcm_project_dev
+CREATE OR REPLACE DCM PROJECT dcm_demo.projects.dcm_tasks_project_dev
     COMMENT = 'for testing DCM Projects with Tasks and task graphs';
 ```
 
@@ -207,13 +207,13 @@ default_target: DCM_DEV
 targets:
   DCM_DEV:
     account_identifier: MYORG-MY_DEV_ACCOUNT        # <-- Replace with your account identifier
-    project_name: DCM_DEMO.PROJECTS.DCM_PROJECT_DEV
+    project_name: DCM_DEMO.PROJECTS.DCM_TASKS_PROJECT_DEV
     project_owner: DCM_DEVELOPER
     templating_config: DEV
 
   DCM_PROD:
     account_identifier: MYORG-MY_PROD_ACCOUNT       # <-- Replace with your account identifier
-    project_name: DCM_DEMO.PROJECTS.DCM_PROJECT_PROD
+    project_name: DCM_DEMO.PROJECTS.DCM_TASKS_PROJECT_PROD
     project_owner: DCM_PROD_DEPLOYER
     templating_config: PROD
 
@@ -272,7 +272,7 @@ Five tables support the graph:
 
 ### Procedures — `sources/definitions/procedures.sql`
 
-This file uses the early-access **`DEFINE PROCEDURE`** statement, so procedure lifecycle is fully DCM-managed — you don't need separate `CREATE OR ALTER PROCEDURE` migrations for the demo procs.
+This file uses **`DEFINE PROCEDURE`**, so procedure lifecycle is fully DCM-managed — you don't need separate `CREATE OR ALTER PROCEDURE` migrations for the demo procs.
 
 ```sql
 DEFINE PROCEDURE DCM_DEMO_4{{env_suffix}}.PIPELINE.DEMO_PROCEDURE_1()
@@ -318,9 +318,43 @@ ATTACH DATA METRIC FUNCTION SNOWFLAKE.CORE.NULL_COUNT
 
 Adding or removing an attachment here changes the `CHECK_DATA_QUALITY` task's behavior on the next deploy (it discovers attached DMFs at runtime via `GET_ACTIVE_QUALITY_CHECKS`) — no manual `ALTER TABLE` required.
 
+### Alerts — `sources/definitions/alerts.sql`
+
+The failed-task alert is defined declaratively with `DEFINE ALERT`. The `STARTED` target-state property means the alert is active the moment the deployment completes — no `ALTER ALERT ... RESUME` post-script needed. The recipient email comes from the same `{{notification_recipient}}` manifest value the finalizer uses, so you only configure it in one place.
+
+```sql
+DEFINE ALERT DCM_DEMO_4{{env_suffix}}.PIPELINE.FAILED_TASK_ALERT
+    SCHEDULE = '60 MINUTE'
+    STARTED
+    IF (EXISTS (
+        SELECT NAME, SCHEMA_NAME
+        FROM TABLE(DCM_DEMO_4{{env_suffix}}.INFORMATION_SCHEMA.TASK_HISTORY(
+            SCHEDULED_TIME_RANGE_START => (GREATEST(
+                TIMEADD('DAY', -7, CURRENT_TIMESTAMP),
+                SNOWFLAKE.ALERT.LAST_SUCCESSFUL_SCHEDULED_TIME())),
+            SCHEDULED_TIME_RANGE_END   => SNOWFLAKE.ALERT.SCHEDULED_TIME(),
+            ERROR_ONLY                 => TRUE))))
+    THEN
+        BEGIN
+            LET task_names STRING := (
+                SELECT LISTAGG(DISTINCT(SCHEMA_NAME || '.' || NAME), ', ')
+                FROM TABLE(RESULT_SCAN(SNOWFLAKE.ALERT.GET_CONDITION_QUERY_UUID())));
+            CALL SYSTEM$SEND_SNOWFLAKE_NOTIFICATION(
+                SNOWFLAKE.NOTIFICATION.TEXT_HTML(
+                    'Failed tasks detected: <b>' || :task_names || '</b>'),
+                SNOWFLAKE.NOTIFICATION.EMAIL_INTEGRATION_CONFIG(
+                    'dcm_demo_email_notifications',
+                    'DCM Pipeline — Failed Task Alert',
+                    ARRAY_CONSTRUCT('{{notification_recipient}}'),
+                    NULL, NULL));
+        END;
+```
+
+The alert runs **serverless** (no warehouse specified), checks for any failed task in the last interval, and emails the list if the condition is true. `SNOWFLAKE.ALERT.GET_CONDITION_QUERY_UUID()` gives you the result of the condition query so you don't have to re-run it to build the message.
+
 ### Tasks — `sources/definitions/tasks.sql`
 
-This is the heart of the project. Every task uses the early-access `STARTED | SUSPENDED` property, so DCM deploys the graph fully wired up — no `ALTER TASK ... RESUME` post-script needed. DCM also resolves the root-vs-child state ordering for you.
+This is the heart of the project. Every task uses the `STARTED | SUSPENDED` target-state property — a DCM-only extension to `DEFINE TASK` that has no equivalent in `CREATE TASK`. With plain DDL, a new task is always created in a suspended state and you have to follow up with `ALTER TASK ... RESUME` (or `SYSTEM$TASK_DEPENDENTS_ENABLE` for a whole graph) to bring it online. By declaring the desired state inline, DCM deploys the graph fully wired up — no post-scripts needed — and resolves the root-vs-child state ordering for you. It also means that suspending a task is a declarative change: flip `STARTED` to `SUSPENDED` in Git, deploy, and DCM handles the transition.
 
 Here's the root:
 
@@ -413,7 +447,7 @@ With the manifest updated (account identifier, user, notification recipient) and
 ### Option A: Snowsight Workspaces
 
 1. Open `DCM_Projects_Tasks/manifest.yml` in the Workspaces file explorer.
-2. At the bottom of the editor, confirm the project selector shows `DCM_DEMO.PROJECTS.DCM_PROJECT_DEV` and the target shows `DCM_DEV`.
+2. At the bottom of the editor, confirm the project selector shows `DCM_DEMO.PROJECTS.DCM_TASKS_PROJECT_DEV` and the target shows `DCM_DEV`.
 
 ![Snowsight target selector showing DCM_DEV (default, green) and DCM_PROD](assets/select_project.png)
 
@@ -434,9 +468,9 @@ snow dcm deploy --target DCM_DEV
 Deployment takes about 30–60 seconds. When it succeeds, every `STARTED` task is already running state — the schedule on `DEMO_TASK_1` will fire the root task at the next CRON slot, and `DEMO_TASK_14` and `DEMO_TASK_15` are correctly in `SUSPENDED` state.
 
 <!-- ------------------------ -->
-## Post-Deploy: Stream, Alert, and a Manual Run
+## Post-Deploy: Stream and a Manual Run
 
-Streams and alerts are not yet supported as DCM `DEFINE` statements. Those pieces live in `scripts/02_post_deploy.sql`. (The DMF attachments themselves are already in DCM — see `expectations.sql` above.)
+Streams are not yet supported as DCM `DEFINE` statements, so the stream setup still lives in `scripts/02_post_deploy.sql`. (The DMF attachments and the failed-task alert are already DCM-managed — see `expectations.sql` and `alerts.sql` above.)
 
 Open that script in a Snowsight worksheet and walk through it section by section.
 
@@ -450,42 +484,7 @@ CREATE OR REPLACE STREAM dcm_demo_4_dev.pipeline.demo_stream
 
 `DEMO_TASK_8` has `WHEN SYSTEM$STREAM_HAS_DATA('...DEMO_STREAM')`, so without data it is skipped on every graph run — exactly the "conditional execution on a stream" scenario.
 
-### 2. Create a Serverless Failed-Task Alert
-
-```sql
-CREATE OR REPLACE ALERT dcm_demo_4_dev.pipeline.failed_task_alert
-    SCHEDULE = '60 MINUTE'
-    IF (EXISTS (
-        SELECT NAME, SCHEMA_NAME
-        FROM TABLE(DCM_DEMO_4_DEV.INFORMATION_SCHEMA.TASK_HISTORY(
-            SCHEDULED_TIME_RANGE_START => (GREATEST(
-                TIMEADD('DAY', -7, CURRENT_TIMESTAMP),
-                SNOWFLAKE.ALERT.LAST_SUCCESSFUL_SCHEDULED_TIME())),
-            SCHEDULED_TIME_RANGE_END   => SNOWFLAKE.ALERT.SCHEDULED_TIME(),
-            ERROR_ONLY                 => TRUE))))
-    THEN
-        BEGIN
-            LET task_names STRING := (
-                SELECT LISTAGG(DISTINCT(SCHEMA_NAME || '.' || NAME), ', ')
-                FROM TABLE(RESULT_SCAN(SNOWFLAKE.ALERT.GET_CONDITION_QUERY_UUID())));
-            CALL SYSTEM$SEND_SNOWFLAKE_NOTIFICATION(
-                SNOWFLAKE.NOTIFICATION.TEXT_HTML(
-                    'Failed tasks detected: <b>' || :task_names || '</b>'),
-                SNOWFLAKE.NOTIFICATION.EMAIL_INTEGRATION_CONFIG(
-                    'dcm_demo_email_notifications',
-                    'DCM Pipeline — Failed Task Alert',
-                    ARRAY_CONSTRUCT('INSERT_YOUR_EMAIL'),   -- <-- Replace with your verified email
-                    NULL, NULL));
-        END;
-
-ALTER ALERT dcm_demo_4_dev.pipeline.failed_task_alert RESUME;
-```
-
-The alert runs **serverless** (no warehouse specified), checks for any failed task in the last interval, and emails the list if the condition is true. `SNOWFLAKE.ALERT.GET_CONDITION_QUERY_UUID()` gives you the result of the condition query so you don't have to re-run it to build the message.
-
-> **Why is the email here *and* in `manifest.yml`?** DCM does not manage alerts, so this companion script can't use `{{notification_recipient}}`. The DCM-managed tasks (finalizer, quality-issue notification) pull the email from the manifest at deploy time, while the alert needs it hard-coded in the SQL. If you change your notification email, update both places.
-
-### 3. Seed the Source Table and Run the Graph
+### 2. Seed the Source Table and Run the Graph
 
 ```sql
 INSERT INTO dcm_demo_4_dev.pipeline.weather_data_source (...) VALUES (...);
@@ -558,22 +557,17 @@ When you're done, open `scripts/03_cleanup.sql` in a Snowsight worksheet and run
 
 ```sql
 USE ROLE dcm_developer;
+EXECUTE DCM PROJECT dcm_demo.projects.dcm_tasks_project_dev PURGE;
 
-ALTER TASK IF EXISTS dcm_demo_4_dev.pipeline.demo_task_1 SUSPEND;
-DROP DATABASE IF EXISTS dcm_demo_4_dev;
-DROP WAREHOUSE IF EXISTS dcm_demo_4_wh_dev;
-
-DROP ROLE IF EXISTS dcm_demo_4_dev_read;
-
+-- Notification integration is outside project scope, drop separately
 USE ROLE ACCOUNTADMIN;
 DROP INTEGRATION IF EXISTS dcm_demo_email_notifications;
 
-DROP DCM PROJECT IF EXISTS dcm_demo.projects.dcm_project_dev;
+DROP DCM PROJECT IF EXISTS dcm_demo.projects.dcm_tasks_project_dev;
 DROP SCHEMA IF EXISTS dcm_demo.projects;
 DROP DATABASE IF EXISTS dcm_demo;
 
 DROP ROLE IF EXISTS dcm_developer;
-DROP WAREHOUSE IF EXISTS dcm_wh;
 ```
 
 <!-- ------------------------ -->
@@ -586,13 +580,20 @@ In this guide, you learned how to:
 - **Manage stored procedures through DCM** with `DEFINE PROCEDURE`, so the procs your tasks call version alongside the tasks themselves
 - **Send plain-text email summaries from a finalizer task** using a reusable JSON summary helper function
 - **Build a DMF-backed quality gate** that uses return-value routing to push clean rows to a target table and bad rows to quarantine — and make the set of checks completely data-driven
-- **Monitor graph health with a serverless alert** that emails you when any task fails
+- **Monitor graph health with a DCM-managed serverless alert** (`DEFINE ALERT ... STARTED`) that emails you whenever any task in the graph fails
 
 The combination of DCM Projects and Tasks gives you the same production-grade workflow for orchestration that you already have for tables: version-controlled definitions, environment-aware deployments, and Plan/Deploy reviewability for every change.
 
+### What's Next
+
+You've completed the 4-part DCM series. Ready to go deeper?
+
+- **[DCM Projects Documentation](https://docs.snowflake.com/en/user-guide/dcm-projects/dcm-projects-overview)** — full reference for advanced DCM features: release channels, target-state management for more object types, and CI/CD integration patterns.
+- **[DCM Projects — Extended Capabilities](https://docs.snowflake.com/en/dcm-projects/dcm-projects-early-access)** — newest DCM features as they land.
+
 ### Related Resources
 - [DCM Projects Documentation](https://docs.snowflake.com/en/user-guide/dcm-projects/dcm-projects-overview)
-- [DCM Projects — Extended Capabilities (Early Access)](https://docs.snowflake.com/en/LIMITEDACCESS/dcm-projects/dcm-projects-early-access)
+- [DCM Projects — Extended Capabilities](https://docs.snowflake.com/en/dcm-projects/dcm-projects-early-access)
 - [Snowflake Tasks and Task Graphs](https://docs.snowflake.com/en/user-guide/tasks-graphs)
 - [Finalizer Tasks](https://docs.snowflake.com/en/user-guide/tasks-intro#finalizer-task)
 - [Data Metric Functions](https://docs.snowflake.com/en/user-guide/data-quality-intro)
