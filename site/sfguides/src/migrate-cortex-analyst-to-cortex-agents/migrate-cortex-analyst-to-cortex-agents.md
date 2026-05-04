@@ -148,128 +148,13 @@ You can also do this in Snowsight under **Access** on the agent details page.
 
 ## Update Your API Calls
 
-### Request: before and after
+### Request and response: before and after
 
-**Cortex Analyst (before):**
-
-```bash
-curl -X POST "$SNOWFLAKE_ACCOUNT_BASE_URL/api/v2/cortex/analyst/message" \
-  --header 'Content-Type: application/json' \
-  --header "Authorization: Bearer $PAT" \
-  --data '{
-    "messages": [
-      {
-        "role": "user",
-        "content": [
-          {
-            "type": "text",
-            "text": "What was total revenue last quarter?"
-          }
-        ]
-      }
-    ],
-    "semantic_view": "MY_DB.MY_SCHEMA.SALES_SEMANTIC_VIEW"
-  }'
-```
-
-**Cortex Agents (after):**
-
-```bash
-curl -X POST "$SNOWFLAKE_ACCOUNT_BASE_URL/api/v2/databases/my_db/schemas/my_schema/agents/my_analytics_agent:run" \
-  --header 'Content-Type: application/json' \
-  --header "Authorization: Bearer $PAT" \
-  --data '{
-    "messages": [
-      {
-        "role": "user",
-        "content": [
-          {
-            "type": "text",
-            "text": "What was total revenue last quarter?"
-          }
-        ]
-      }
-    ],
-    "stream": false
-  }'
-```
-
-Key differences:
+The key differences between the two APIs:
 - **Endpoint**: `/api/v2/cortex/analyst/message` → `/api/v2/databases/{db}/schemas/{schema}/agents/{name}:run`
 - **Semantic view**: Specified when creating the agent, not in every request
 - **Stream**: Agents stream by default; set `stream: false` for a non-streaming response
-
-### Response: before and after
-
-**Cortex Analyst response:**
-
-```json
-{
-  "request_id": "75d343ee-699c-483f-83a1-e314609fb563",
-  "message": {
-    "role": "analyst",
-    "content": [
-      {
-        "type": "text",
-        "text": "I interpreted your question as: total revenue for Q1 2026."
-      },
-      {
-        "type": "sql",
-        "statement": "SELECT SUM(revenue) AS total_revenue FROM sales WHERE quarter = 'Q1 2026'",
-        "confidence": {
-          "verified_query_used": null
-        }
-      }
-    ]
-  }
-}
-```
-
-**Cortex Agents response (non-streaming):**
-
-```json
-{
-  "request_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "message": {
-    "role": "assistant",
-    "content": [
-      {
-        "type": "text",
-        "text": "I'll look up the total revenue for last quarter."
-      },
-      {
-        "type": "tool_use",
-        "tool_use": {
-          "name": "system_execute_sql",
-          "input": {
-            "sql": "SELECT SUM(revenue) AS total_revenue FROM sales WHERE quarter = 'Q1 2026'"
-          }
-        }
-      },
-      {
-        "type": "tool_result",
-        "tool_result": {
-          "name": "system_execute_sql",
-          "content": {
-            "query_id": "01b5a678-0001-abcd-0000-000000000001",
-            "result_set": [
-              {"TOTAL_REVENUE": 4250000.00}
-            ],
-            "sql": "SELECT SUM(revenue) AS total_revenue FROM sales WHERE quarter = 'Q1 2026'"
-          }
-        }
-      },
-      {
-        "type": "text",
-        "text": "Total revenue last quarter (Q1 2026) was **$4,250,000**."
-      }
-    ]
-  }
-}
-```
-
-Key differences in the response:
-- **Role**: `analyst` → `assistant`
+- **Response role**: `analyst` → `assistant`
 - **SQL delivery**: A `sql` content block → `tool_use` and `tool_result` blocks of type `system_execute_sql`
 - **Results included**: Agents execute the SQL and return results directly
 - **Final answer**: Agents provide a natural language summary after seeing the data
@@ -672,42 +557,6 @@ SELECT DATA_AGENT_RUN(
 
 This returns a non-streaming JSON response and is useful for testing, notebooks, or stored procedure integrations.
 
-### Handling agent without an object (quick testing)
-
-For quick prototyping without creating a persistent agent object, you can call `agent:run` with inline configuration:
-
-```bash
-curl -X POST "$SNOWFLAKE_ACCOUNT_BASE_URL/api/v2/cortex/agent:run" \
-  --header 'Content-Type: application/json' \
-  --header "Authorization: Bearer $PAT" \
-  --data '{
-    "model": "auto",
-    "messages": [
-      {
-        "role": "user",
-        "content": [{"type": "text", "text": "What was total revenue last quarter?"}]
-      }
-    ],
-    "tools": [
-      {
-        "tool_spec": {
-          "type": "cortex_analyst_text_to_sql",
-          "name": "SalesAnalytics",
-          "description": "Sales data analysis"
-        }
-      }
-    ],
-    "tool_resources": {
-      "SalesAnalytics": {
-        "semantic_view": "MY_DB.MY_SCHEMA.SALES_SEMANTIC_VIEW"
-      }
-    },
-    "stream": false
-  }'
-```
-
-This is useful for testing but not recommended for production — use a persistent agent object instead.
-
 
 ## Update Monitoring
 
@@ -738,77 +587,23 @@ ORDER BY start_time DESC;
 
 ### Sending feedback
 
-```python
-def send_feedback(
-    database: str,
-    schema: str,
-    agent_name: str,
-    request_id: str,
-    positive: bool,
-    message: str = None,
-    thread_id: str = None,
-):
-    """Send thumbs up/down feedback for an agent response."""
-    payload = {
-        "request_id": request_id,
-        "positive": positive,
-    }
-    if message:
-        payload["feedback_message"] = message
-    if thread_id:
-        payload["thread_id"] = thread_id
-
-    response = requests.post(
-        f"{ACCOUNT_URL}/api/v2/databases/{database}/schemas/{schema}/agents/{agent_name}:feedback",
-        headers={
-            "Authorization": f"Bearer {PAT}",
-            "Content-Type": "application/json",
-        },
-        json=payload,
-    )
-    response.raise_for_status()
+```bash
+curl -X POST "$SNOWFLAKE_ACCOUNT_BASE_URL/api/v2/databases/my_db/schemas/my_schema/agents/my_analytics_agent:feedback" \
+  --header "Authorization: Bearer $PAT" \
+  --header 'Content-Type: application/json' \
+  --data '{"request_id": "<request_id>", "positive": true, "feedback_message": "Correct answer"}'
 ```
 
 
 ## Validate Your Migration
 
-### Step-by-step validation
+Before switching production traffic, confirm:
 
-1. **Run representative questions through both APIs**
-
-   Pick 10-20 questions that represent your production workload. Run them through both Cortex Analyst and your new Cortex Agent. Compare:
-   - SQL correctness
-   - Result accuracy
-   - Response latency
-   - Handling of ambiguous questions
-
-2. **Verify response parsing**
-
-   Confirm your application correctly handles all response types:
-   - Text-only responses (when the agent asks for clarification)
-   - SQL + results responses
-   - Multi-step responses (agent calls tools multiple times)
-   - Error responses
-
-3. **Test multi-turn conversations**
-
-   Verify that follow-up questions work correctly with threads:
-   - "What was revenue last quarter?" → "Break that down by region" → "Which region grew the most?"
-   - Confirm context is preserved across turns
-
-4. **Validate edge cases**
-
-   - Questions that the model cannot answer (should respond gracefully)
-   - Very long or complex questions
-   - Questions that span multiple semantic views (if using routing)
-
-5. **Switch production traffic**
-
-   Once validation passes:
-   - Deploy the updated client code
-   - Monitor the `CORTEX_AGENT_USAGE_HISTORY` view for errors
-   - Collect feedback from users
-   - Remove the old Analyst API integration
+- Run 10-20 representative questions through both APIs and compare SQL correctness, accuracy, and latency
+- Verify your app handles all response types: text-only, SQL + results, multi-step, and errors
+- Test multi-turn conversations with threads (ask a question, then follow up)
+- Check that ambiguous or unanswerable questions are handled gracefully
+- Monitor `CORTEX_AGENT_USAGE_HISTORY` after switching and collect user feedback
 
 
 ## Conclusion and Next Steps
