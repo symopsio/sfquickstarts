@@ -7,7 +7,7 @@ environments: web
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
 
-# Cortex Code Foundations
+# Getting Started with Cortex Code
 <!-- ------------------------ -->
 ## Overview
 
@@ -207,160 +207,369 @@ What databases do I have access to?
 <!-- ------------------------ -->
 ## Workshop Overview
 
-This workshop covers three progressive scenarios using a fictional company with two ERP systems (SAP for manufacturing in Germany, Oracle for operations in the US).
+This workshop follows a single AP invoices storyline across three demos — from data discovery through operationalization and optional agent design.
 
-| Demo | Scenario | Skills |
+### Lab Environment
+
+| Setting | Value |
+|---|---|
+| Database | `COCO_WORKSHOP` |
+| Shared inputs | `COCO_WORKSHOP.SOURCE_DATA` (read-only) |
+| Your outputs | `COCO_WORKSHOP.<YOUR_SCHEMA>` |
+| Role | `COCO_WORKSHOP_ROLE` |
+| Warehouse | `COCO_WORKSHOP_WH` |
+
+Set your context before starting:
+
+```sql
+USE ROLE COCO_WORKSHOP_ROLE;
+USE WAREHOUSE COCO_WORKSHOP_WH;
+USE DATABASE COCO_WORKSHOP;
+USE SCHEMA <YOUR_SCHEMA>;
+```
+
+You also need the `SNOWFLAKE.CORTEX_USER` database role on your user (directly or via a parent role) so Cortex Code CLI can use Snowflake AI features.
+
+### Quickstart Path
+
+| Step | Demo | Outcome |
 |---|---|---|
-| **Vignette 1** | Pipeline Builder — Bronze → Silver → Gold AP invoice pipeline | `$dynamic-tables` |
-| **Vignette 2** | Pipeline Maintainer — Debug stale data, onboard 2 new ERP sources | `$skill-development` |
-| **Vignette 3** | Build First Agent — Semantic view + Cortex Agent + evaluation framework | `$cortex-agent`, `$semantic-view` |
+| 1 | Demo 1 | Discover source tables, compare SAP and Oracle schemas, build a Silver-grade AP invoices Dynamic Table, and generate an operating runbook with the Dynamic Table skill. |
+| 2 | Demo 2 | Read a local PRD, create a reusable PRD Evaluator skill, and apply repeatable updates to `SILVER_AP_INVOICES`. |
+| 3 | Demo 3 *(optional)* | Use the curated invoices object as the foundation for a Cortex data agent and establish a simple evaluation workflow. |
 
 ### Execution Modes
 
-Before starting, familiarize yourself with CoCo's three execution modes:
-
-| Mode | Description |
-|---|---|
-| **Confirm Mode** (default) | Prompts before file edits, bash commands, etc. All operations show risk level for approval. |
-| **Plan Mode** (`/plan`) | Agent proposes a plan but doesn't execute until you approve. |
-| **Bypass Mode** (`/bypass`) | Auto-approves all operations — not recommended. Can be disabled via managed settings. |
+| Mode | Description | Use Case | Activation |
+|---|---|---|---|
+| **Interactive** (default) | Proposes changes and asks for confirmation before running impactful operations. | Everyday work where you want to see and approve each step. | Default |
+| **Plan Mode** | Stays read-only while it thinks, then returns a structured multi-step plan and waits for approval before executing. | Multi-step or higher-risk tasks, such as creating or updating core tables. | `Ctrl+P` or `/plan` |
+| **Automated** | Executes an agreed workflow end to end with fewer prompts, once you are comfortable with the pattern. | Trusted, non-production environments where the workflow has already been validated. | `Shift+Tab` |
 
 <!-- ------------------------ -->
-## Vignette 1: Pipeline Builder
+## Demo 1: Pipeline Builder
 
-### The Story
+**Duration: ~20 minutes**
 
-Your company runs two ERP systems: SAP for manufacturing in Germany and Oracle for operations in the US. Both generate AP invoices with completely different column names and conventions.
+Finance needs a trusted AP invoices layer. SAP and Oracle invoice data already exist in Snowflake, but there is no standardized Silver object yet. The goal is a single, well-modeled table that can be explained, monitored, and evolved without repeating discovery work each time a requirement changes.
 
-Finance needs a single, consolidated view of all payables for reporting. Today this is done with manual SQL scripts that break every time a column changes.
+### Step 1.1 – Discover the Source
 
-You'll use Cortex Code to build a declarative pipeline using Dynamic Tables — **Bronze → Silver (consolidation) → Gold (aggregation)** — with automatic refresh and no orchestration code.
+Begin with data discovery — a natural first move when you enter a new schema.
 
-### What You'll Learn
-- Ground CoCo on live schema context
-- Generate consolidation DDL from cross-source metadata
-- Generate downstream aggregation DDL + verification queries
-- Save the workflow as a team skill
+```
+What tables are in the `COCO_WORKSHOP.SOURCE_DATA` schema?
+For each table, give me a one-line description of what it appears to contain and identify
+which ones are most relevant to an AP invoices Silver layer.
+```
 
-### Demo Steps
+> **What to look for:** A short list of tables relevant to the AP workflow, with enough description to orient yourself without manually opening each object.
 
-| Step | Task |
-|---|---|
-| Demo 1.1 | Setup: Explore the source data |
-| Demo 1.2 | Compare SAP and Oracle invoice schemas |
-| Demo 1.3 | Generate Silver Dynamic Table |
-| Demo 1.4 | Use the `$dynamic-tables` skill |
-| Demo 1.5 | Save one proof query |
+### Step 1.2 – Compare SAP and Oracle Invoice Schemas
+
+Once you know which tables matter, compare them to get the shortest path to a clean normalization plan.
+
+```
+Compare the columns between
+COCO_WORKSHOP.SOURCE_DATA.BRONZE_SAP_AP_INVOICES and
+COCO_WORKSHOP.SOURCE_DATA.BRONZE_ORACLE_AP_INVOICES.
+Return:
+- Equivalent fields with different names
+- Fields that require type normalization or default values
+- Differences that should remain open questions instead of becoming hidden assumptions
+```
+
+> **What to look for:** Equivalent business fields with different names, normalization work you should expect before building Silver, and open questions that should stay explicit for later review.
+
+### Step 1.3 – Generate the Silver Dynamic Table
+
+For this step, turn on **Plan Mode** (`Ctrl+P`) to see how Cortex Code thinks through a multi-step task before executing.
+
+**Plan Mode** stays read-only while it thinks, then returns a structured multi-step plan and waits for your approval before executing. This is useful for higher-risk tasks like creating core tables.
+
+```
+Ctrl+P
+```
+
+Then run:
+
+```
+Use database COCO_WORKSHOP and my current schema for outputs.
+Create a Dynamic Table called SILVER_AP_INVOICES in my current schema by combining
+COCO_WORKSHOP.SOURCE_DATA.BRONZE_SAP_AP_INVOICES and
+COCO_WORKSHOP.SOURCE_DATA.BRONZE_ORACLE_AP_INVOICES.
+```
+
+> **What to look for:** A clean first-pass Dynamic Table definition with explainable design choices.
+
+When finished, exit Plan Mode — it should turn off automatically when you approve execution.
+
+### Step 1.4 – Use the Bundled `$dynamic-tables` Skill
+
+Skills are reusable workflows that tell Cortex Code how to handle a specific Snowflake task. Instead of responding in a completely open-ended way, a skill provides domain context, expected inputs, a defined process, and structured outputs.
+
+**Bundled skills** ship with Cortex Code — prebuilt, Snowflake-native workflows designed to start from proven patterns.
+
+First, see what skills are available:
+
+```
+/skill list
+```
+
+Then inspect the Dynamic Tables skill before applying it:
+
+```
+What does the $dynamic-tables skill do? Summarize when I should use it,
+what inputs it expects, and what kinds of output it returns.
+```
+
+Then apply it to `SILVER_AP_INVOICES`:
+
+```
+$dynamic-tables
+Analyze the Dynamic Table SILVER_AP_INVOICES in my current schema.
+Return:
+1. The recommended TARGET_LAG choice for this workflow and why
+2. SQL to inspect current state, lag, and refresh history
+3. The main failure or staleness patterns to watch for
+4. A short best-practices checklist for operating this table well
+```
+
+> **What to look for:** A runbook you would actually keep — a couple of monitoring queries and a concise operating checklist, not generic advice.
+
+### Step 1.5 – Save a Proof Query *(optional)*
+
+End Demo 1 with a lightweight proof query you can rerun after every change.
+
+```
+Give me one concise proof query for SILVER_AP_INVOICES that shows record counts
+by SOURCE_SYSTEM and is easy to rerun after future changes.
+```
+
+> **What to look for:** A concise query that can be reused after every change.
+> Save this output: `sql/02_silver_ap_invoices_proof.sql`
+
+By the end of Demo 1 you have a Silver-grade AP invoices Dynamic Table, an operating runbook generated by a bundled skill, and a proof query you can rerun after each change.
 
 <!-- ------------------------ -->
-## Vignette 2: Pipeline Maintainer
+## Demo 2: Add Local Context and Productionize
 
-### The Story
+**Duration: ~30 minutes**
 
-It's a month after launch. The Silver pipeline is live, but something's wrong — data looks stale and stakeholders are asking questions.
+A month later, the business sends a PRD that expands the AP invoices pipeline. New source systems must be added, field requirements have changed, and some definitions need clarification. Rather than solving this once with a long prompt every time, you can standardize the workflow as a custom skill.
 
-Meanwhile, the Finance Transformation PMO just sent over an Excel file: they want to onboard two more ERP systems (Baan from EMEA and Workday from Americas). The spreadsheet has column mappings, business rules, and open questions.
+### Step 2.1 – Read the Local PRD
 
-You need to diagnose the issue, translate business requirements into technical specs, evolve the pipeline to handle 4 sources, and set up monitoring.
+Start by understanding the business request. Assume you have a file `sample_business_requirements.xlsx` in your working directory.
 
-### What You'll Learn
-- Turn an Excel requirements doc into executable change steps
-- Capture the workflow as a reusable team skill/runbook
-- Run a local skill
-- Save materials to share updates with team members
+```
+Read the local file sample_business_requirements.xlsx.
+Summarize the changes that affect the AP invoices pipeline.
+Return:
+- New source systems being introduced
+- New fields or business rules that affect the Silver layer
+- Ambiguities or open questions that should be resolved before implementation
+```
 
-### Demo Steps
+> **What to look for:** A clear distinction between requirements and assumptions, and the shape of information your custom skill should standardize.
 
-| Step | Task |
-|---|---|
-| Demo 2.1 | Read the local PRD |
-| Demo 2.2 | Scaffold a Custom Skill |
-| Demo 2.3 | Run the PRD Evaluator Skill |
-| Demo 2.4 | Apply the changes |
-| Demo 2.5 | *(Optional)* Save handoff materials |
+### Why Create a Custom Skill?
 
-> **Note:** Requires Vignette 1 to be completed first. Uses a local (or staged) Excel file.
+If you stop here and simply ask Cortex Code to update `SILVER_AP_INVOICES`, you get a reasonable one-off result. But the repeatable pattern is the real value:
+
+- Read the PRD
+- Extract requested changes
+- Translate those changes into a Dynamic Table plan
+- Surface assumptions and open questions
+- Propose validation queries
+
+That is exactly the kind of workflow custom skills are meant to standardize.
+
+**Where custom skills live:**
+
+| Skill Type | Location | Scope |
+|---|---|---|
+| Bundled | Built into Cortex Code | Available by default |
+| User-level | `~/.snowflake/cortex/skills/` | Available across projects |
+| Project-level | `.cortex/skills/` in your repo | Available only in that project |
+
+For this quickstart, use a **project skill** so anyone who clones the repo gets the same behavior.
+
+### Step 2.2 – Scaffold a Custom Skill
+
+Confirm the `$skill-development` workflow is available:
+
+```
+/skill list
+```
+
+Then ask it to help you define the new custom skill:
+
+```
+This seems like a repeatable workflow I will have for many PRDs. Walk me through
+[$skill-development] for building a project skill that will help me take PRD-style
+files like this and turn them into a plan for putting them into a target Dynamic Table
+(for this demo, SILVER_AP_INVOICES).
+
+Define:
+- When to use the skill
+- What inputs it expects (for example, prd_path and target_dynamic_table)
+- The exact outputs it should always return
+- Best practices for surfacing assumptions and open questions instead of guessing
+- An example usage for an AP invoices pipeline update
+
+Requirements:
+- Make it a project skill
+- Put it under .cortex/skills/ in this demo repo
+- Start by supporting XLSX files
+```
+
+> **What to look for:** A skill that returns the same categories of output every time: requested changes, source-to-Silver mapping, open questions and assumptions, DDL delta plan, and validation queries.
+
+### Step 2.3 – Run the PRD Evaluator Skill
+
+With the custom skill in place, invoke the workflow instead of rebuilding the logic from scratch:
+
+```
+Run the project skill we just made prd-to-silver
+Context:
+- prd_path: sample_business_requirements.xlsx
+- target_dynamic_table: SILVER_AP_INVOICES
+Return:
+1. Summary of requested changes
+2. Source-to-Silver mapping summary
+3. Open questions and assumptions
+4. DDL delta plan for SILVER_AP_INVOICES
+5. Validation queries to run after implementation
+```
+
+> **What to look for:** A consistent shape you could compare across future PRDs, and a delta plan another engineer could review before deployment.
+> Save this output: `notes/02_prd_change_plan.md`
+
+### Step 2.4 – Apply the Update
+
+Use the structured output from the skill to update the Dynamic Table:
+
+```
+Update SILVER_AP_INVOICES in my current schema using the change plan from
+sample_business_requirements.xlsx.
+Assume the PRD introduces Baan and Workday as additional AP invoice sources.
+Return:
+- The updated Dynamic Table SQL
+- A short explanation of how the new sources map into the common schema
+- Any assumptions that require engineering review
+- Validation queries that prove the update worked
+```
+
+> **What to look for:** Updated SQL, explainable source mapping, explicit assumptions, and validation queries.
+> Save this output: `sql/03_silver_ap_invoices_prd_update.sql`
+
+### Step 2.5 – Save Handoff Artifacts *(optional)*
+
+```
+List the artifacts in a local markdown file I should save from this PRD-driven update
+so another engineer can review the change, rerun the checks, and reuse the
+PRD Evaluator skill.
+```
+
+> **What to look for:** A concise handoff package another engineer can review and rerun.
+> Save this output: `notes/03_prd_workflow_handoff.md`
+
+At this point the quickstart is complete for most teams: you have a curated AP invoices object and a repeatable workflow for evolving it with new PRDs.
 
 <!-- ------------------------ -->
-## Vignette 3: Build First Agent
+## Demo 3: Build an Agent on the Data Product *(Optional)*
 
-### The Story
+**Duration: ~30 minutes**
 
-The AP consolidation pipeline is running smoothly with 4 source systems. But only engineers can query it — business users can't write SQL.
+By this point you have a curated AP invoices Silver object and a repeatable way to evolve it based on business requirements. That is the right moment to introduce agents — because you can keep the AI experience grounded in trusted, well-modeled data.
 
-You'll create a semantic view that translates the Silver table into business-friendly dimensions and measures, then wrap it in a Cortex Agent that answers natural language questions about AP invoices.
+### Step 3.1 – Define the Agent Use Case
 
-You'll also build an evaluation framework — test questions, logged responses, and human feedback — to audit and improve the agent iteratively.
+Keep the first pass narrow and grounded in the data product you built:
 
-### What You'll Learn
-- Generate a semantic view from live table metadata
-- Create an agent with verifiable responses (answer + SQL + assumptions)
-- Run evaluation on a stakeholder-created golden dataset
-- Optimize the data agent based on wrong responses
+```
+Help me define a Cortex data agent on top of SILVER_AP_INVOICES in my current schema.
+Suggest:
+- The primary audience
+- The top five business questions the agent should answer
+- Guardrails that keep the agent grounded in the curated data
+- Any semantic descriptions that would improve answer quality
+```
 
-### Demo Steps
+### Step 3.2 – Create a Semantic View over the Silver Data
 
-| Step | Task |
+Create a semantic view that exposes business-friendly dimensions and measures. This is the object the agent will rely on for most of its answers.
+
+```
+Let's start by building the semantic model using the $semantic-view.
+Create a semantic view called SV_AP_ANALYTICS over <YOUR_SCHEMA>.SILVER_AP_INVOICES.
+It should support natural language questions like:
+- "Total AP spend by vendor over the last 12 months"
+- "Invoice count by month and business unit"
+- "Top 10 vendors by unpaid invoice amount"
+Return:
+- A complete semantic view definition that clearly names business measures and dimensions.
+- Any assumptions you are making about grain, time dimensions, and vendor identifiers.
+```
+
+> **What to look for:** A semantic view definition with clear business measures, dimensions, and assumptions.
+
+### Step 3.3 – Create a Cortex Agent
+
+Now create a Cortex data agent that uses the semantic view to answer natural-language questions:
+
+```
+$cortex-agent
+Create an agent named AP_ANALYTICS_ASSISTANT.
+The agent should:
+- Prefer SV_AP_ANALYTICS as its primary data source.
+- Always respond with three parts: (1) the final answer, (2) the SQL used,
+  and (3) any assumptions about grain or filters.
+- Ask a clarifying question if the requested metric or time grain is ambiguous.
+Return a configuration I can save alongside my project files.
+```
+
+### Step 3.4 – Audit the Semantic View
+
+With the agent created, validate the semantic view and get improvement suggestions:
+
+```
+Help me audit my Semantic View for best practices and provide suggestions.
+```
+
+> **What to look for:** An evaluation of the semantic view against best practices, with concrete suggestions for improving answer quality.
+
+### Step 3.5 – Skills and Workflows from Here
+
+The `$agent-optimize` and `$semantic-view` skills provide structured workflows for iterating on your agent:
+
+| Skill | Capabilities |
 |---|---|
-| Demo 3.1 | Create Semantic View on Silver data |
-| Demo 3.2 | Create a Cortex Agent grounded on the semantic view |
-| Demo 3.3 | Evaluate against a business-user curated dataset |
-| Demo 3.4 | Iterate on Agent from evaluation feedback |
+| `$semantic-view` | Create, Audit (VQR testing, best practices), Debug (root cause analysis for failing queries) |
+| `$agent-optimize` | Create, Ad-Hoc Test, Debug Query, Optimize (improve accuracy from evaluation results) |
 
-> **Note:** Requires Vignettes 1–2 completed.
-
-<!-- ------------------------ -->
-## Agent Evaluation Deep Dive
-
-The bundled **`$agent-optimize`** skill supports four evaluation approaches:
-
-| Approach | Description |
-|---|---|
-| **Ad-Hoc Testing** | Interactively ask questions and manually review responses to explore agent behavior |
-| **Curated Dataset Testing** | Run business-stakeholder-provided questions with expected answers; score with LLM judge |
-| **Feedback-Based Testing** | Review production queries in a Streamlit app and annotate responses |
-| **Evaluation Dataset Curation** | Build a representative question set from production logs or create from scratch |
-
-The workshop uses **Approach #2: Curated Dataset Testing** — business stakeholders provide 15–20 realistic questions with expected answers. This is the most common starting point for teams building data agents.
-
-### `$semantic-view` Skill Capabilities
-
-| Mode | Trigger Example |
-|---|---|
-| **Create** | "Create a semantic view for my sales table" |
-| **Audit** | "Test all my VQRs still work after schema changes" |
-| **Debug** | "Why does 'revenue by region' generate the wrong SQL?" |
-
-### `$agent-optimize` Skill Capabilities
-
-| Mode | Trigger Example |
-|---|---|
-| **Create** | "Build customer support agent to query data + respond" |
-| **Ad-Hoc Test** | "I want to test on 20 common questions" |
-| **Debug Query** | "Why does 'show me last quarter's revenue' fail?" |
-| **Optimize** | "Agent only works 60% accuracy on my test set" |
+Common next steps teams take from here: running curated evaluation datasets, testing verified queries after schema changes, auditing semantic models for best practices, and iterating on agent accuracy based on user feedback.
 
 <!-- ------------------------ -->
 ## Conclusion And Resources
 
-By completing this guide you have:
-- Installed and configured the Cortex Code CLI on your machine
-- Connected CoCo to your Snowflake environment
-- Built a multi-source Dynamic Table pipeline (Bronze → Silver → Gold)
-- Maintained and evolved a live pipeline using an Excel PRD
-- Created a Cortex Agent backed by a semantic view, with a full evaluation framework
+The core pattern is simple: pick one concrete object, ask Cortex Code for one concrete artifact, and keep the result in the project.
+
+In Demo 1, that means a Dynamic Table, a small runbook from a bundled skill, and a single proof query you can rerun after every change. In Demo 2, it means treating the PRD and its evaluator as part of the same data product — with a custom skill that turns a loosely written requirements file into a structured, reviewable change plan. By the time you reach the optional agent design in Demo 3, you can see how bundled skills and custom skills together create a path from disciplined data engineering to a credible AI experience.
 
 ### What You Learned
-- CLI installation on Mac and Windows
-- Snowflake connection configuration and authentication options
-- Using execution modes (Confirm, Plan, Bypass) safely
-- Building declarative pipelines with `$dynamic-tables`
-- Creating and evaluating Cortex Agents with `$cortex-agent` and `$semantic-view`
+- CLI installation on Mac and Windows and Snowflake connection configuration
+- Data discovery, schema comparison, and Silver Dynamic Table creation with CoCo
+- Using Plan Mode (`Ctrl+P`) for multi-step, higher-risk operations
+- Applying bundled skills (`$dynamic-tables`) for operating runbooks
+- Building and using custom skills to standardize repeatable PRD workflows
+- Creating a Cortex Agent grounded on a semantic view with verifiable responses
 
 ### Related Resources
 - [Cortex Code Documentation](https://docs.snowflake.com/en/user-guide/cortex-code)
-- [Snowflake Guide: Get Started with Guides](https://www.snowflake.com/en/developers/guides/get-started-with-guides)
 - [Manage Snowflake Connections](https://docs.snowflake.com/en/user-guide/snowsql-connect)
 - [Dynamic Tables Overview](https://docs.snowflake.com/en/user-guide/dynamic-tables-intro)
 - [Cortex Agents Overview](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agent)
+- [Get Started with Snowflake Guides](https://www.snowflake.com/en/developers/guides/get-started-with-guides)
 - [sfguides GitHub Issues](https://github.com/Snowflake-Labs/sfguides/issues)
