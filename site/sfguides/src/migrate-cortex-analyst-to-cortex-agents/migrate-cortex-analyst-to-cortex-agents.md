@@ -9,7 +9,6 @@ status: Published
 # Upgrade from Cortex Analyst to Cortex Agents
 
 ## Overview
-Duration: 2
 
 Cortex Agents is Snowflake's next-generation API for conversational analytics. It builds on everything Cortex Analyst offers — text-to-SQL over semantic views — and adds agentic orchestration that delivers higher accuracy, self-correction, and a unified interface for structured data, unstructured data, and custom tools.
 
@@ -19,13 +18,12 @@ Cortex Agents is Snowflake's next-generation API for conversational analytics. I
 
 | Capability | Cortex Analyst | Cortex Agents |
 | :--- | :--- | :--- |
-| Text-to-SQL accuracy | High | Higher (agentic reasoning, self-correction) |
-| Unstructured data (RAG) | Not supported | Cortex Search tool |
-| Custom business logic | Not supported | Custom tools (UDFs, stored procs) |
-| Auto-charting | Not supported | data_to_chart tool |
-| Web search | Not supported | Web search tool |
-| Multi-turn context | Client-managed (full history each request) | Server-managed threads |
-| Single API for all AI workloads | No (separate endpoints) | Yes |
+| Open-ended and complex questions | Limited to single-shot SQL | Reasons through multi-step questions, breaks them into sub-tasks |
+| Ambiguous questions | Returns suggestions, requires user to rephrase | Asks clarifying questions naturally in conversation |
+| SQL accuracy | High | Higher — agent can inspect results and self-correct errors |
+| Recovery from incorrect answers | Requires user to re-ask | Agent detects issues and retries with a different approach |
+| Charts and visualizations | Not supported | Generates charts automatically when data benefits from it |
+| Unstructured data (RAG) | Not supported | Combines SQL answers with document search via Cortex Search |
 
 ### What you'll learn
 
@@ -43,7 +41,6 @@ Cortex Agents is Snowflake's next-generation API for conversational analytics. I
 
 
 ## Prerequisites
-Duration: 3
 
 ### Privileges
 
@@ -86,143 +83,70 @@ Cortex Agents supports the same authentication methods as Cortex Analyst:
 All examples in this guide use a PAT stored in the `PAT` environment variable.
 
 
-## Why Cortex Agents
-Duration: 3
+## How Cortex Agents Works
 
-### From single-shot to agentic orchestration
+Cortex Analyst is a single-purpose text-to-SQL endpoint. You send a question and a semantic view; it returns SQL.
 
-**Cortex Analyst** is a single-purpose text-to-SQL endpoint. You send a question and a semantic view, and it returns SQL.
+Cortex Agents wraps that capability in an orchestrator that can:
 
-**Cortex Agents** wraps that capability in an orchestrator that can:
-
-1. **Reason** about which tool to use for your question
-2. **Generate SQL** directly against your semantic view (as of April 2026, the agent generates SQL itself rather than delegating to a separate service)
+1. **Reason** about your question and decide how to approach it
+2. **Generate SQL** directly against your semantic view
 3. **Execute the SQL** and inspect results
 4. **Self-correct** if the SQL errors or returns unexpected results
 5. **Combine tools** — answer questions that need both structured data and document search
 
-This means the agent can handle complex multi-step questions that would have required multiple Analyst calls or manual intervention.
-
-### Accuracy improvements
-
-Because the agent reasons about your question in context, generates SQL with full awareness of prior results, and can retry on failure, it achieves higher accuracy — particularly on:
-
-- Multi-step analytical questions
-- Questions requiring joins across multiple tables
-- Follow-up questions that refine previous answers
-- Questions that benefit from error correction
-
-### A single API for all AI workloads
-
-Instead of maintaining separate integrations for text-to-SQL, document search, and custom logic, Cortex Agents provides one endpoint that routes to the right tool automatically.
+This architecture is why agents handle open-ended and ambiguous questions better: instead of a single pass, the agent can iterate until it gets the right answer.
 
 
 ## Create a Cortex Agent
-Duration: 8
 
-### Option 1: SQL (recommended for production)
+The easiest way to create an agent is through the Snowsight UI. You can also use SQL or the REST API — all three methods produce the same agent object.
 
-```sql
-CREATE OR REPLACE AGENT my_analytics_agent
-  COMMENT = 'Conversational analytics agent for sales data'
-  FROM SPECIFICATION
-  $$
-  models:
-    orchestration: auto
+### Create an agent in Snowsight
 
-  orchestration:
-    budget:
-      seconds: 30
-      tokens: 16000
+1. Sign in to Snowsight
+2. In the navigation menu, select **AI & ML → Agents**
+3. Select **Create agent**
+4. Enter a name and display name for your agent
+5. Select **Create agent**
 
-  instructions:
-    response: "Provide concise, data-driven answers. Include relevant numbers and context."
-    system: "You are a helpful analytics assistant that answers questions about business data."
+Once the agent is created, add your semantic view as a tool:
 
-  tools:
-    - tool_spec:
-        type: "cortex_analyst_text_to_sql"
-        name: "SalesAnalytics"
-        description: "Analyzes sales data including revenue, orders, customers, and products. Use this tool for any question about sales metrics, trends, or performance."
+1. Select **Edit** on your agent
+2. Select **Tools**
+3. Find **Cortex Analyst** and select **+ Add**
+4. Enter a name for the tool (e.g., "SalesAnalytics")
+5. Select **Semantic view**, then choose your semantic view from the picker
+6. Select a warehouse for query execution
+7. For **Description**, write a clear description of what data this semantic view covers and when to use it — this directly impacts routing accuracy
+8. Select **Add**
+9. Select **Save**
 
-  tool_resources:
-    SalesAnalytics:
-      semantic_view: "my_db.my_schema.sales_semantic_view"
-  $$;
-```
+You can test your agent immediately in the agent playground by entering a question on the agent details page.
 
-### Option 2: REST API
-
-```bash
-curl -X POST "$SNOWFLAKE_ACCOUNT_BASE_URL/api/v2/databases/my_db/schemas/my_schema/agents" \
-  --header 'Content-Type: application/json' \
-  --header 'Accept: application/json' \
-  --header "Authorization: Bearer $PAT" \
-  --data '{
-    "name": "my_analytics_agent",
-    "comment": "Conversational analytics agent for sales data",
-    "models": {
-      "orchestration": "auto"
-    },
-    "tools": [
-      {
-        "tool_spec": {
-          "type": "cortex_analyst_text_to_sql",
-          "name": "SalesAnalytics",
-          "description": "Analyzes sales data including revenue, orders, customers, and products."
-        }
-      }
-    ],
-    "tool_resources": {
-      "SalesAnalytics": {
-        "semantic_view": "my_db.my_schema.sales_semantic_view"
-      }
-    }
-  }'
-```
+For full details, see [Configure and interact with Agents](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-manage).
 
 ### Multiple semantic views
 
-If you currently use the `semantic_models` array in Cortex Analyst to route across multiple views, create a separate tool for each:
+If you currently use the `semantic_models` array in Cortex Analyst to route across multiple views, add each as a separate Cortex Analyst tool on the same agent. Repeat the "Add tool" steps above for each semantic view.
 
-```sql
-CREATE OR REPLACE AGENT my_analytics_agent
-  FROM SPECIFICATION
-  $$
-  models:
-    orchestration: auto
+The agent automatically routes questions to the correct tool based on the descriptions you provide. Write clear, distinct descriptions for each — for example:
 
-  tools:
-    - tool_spec:
-        type: "cortex_analyst_text_to_sql"
-        name: "SalesAnalytics"
-        description: "Revenue, orders, and customer metrics. Use for sales performance questions."
-    - tool_spec:
-        type: "cortex_analyst_text_to_sql"
-        name: "MarketingAnalytics"
-        description: "Campaign performance, ad spend, and conversion data. Use for marketing questions."
-
-  tool_resources:
-    SalesAnalytics:
-      semantic_view: "my_db.my_schema.sales_semantic_view"
-    MarketingAnalytics:
-      semantic_view: "my_db.my_schema.marketing_semantic_view"
-  $$;
-```
-
-The agent automatically routes questions to the correct tool based on the descriptions. Write clear, specific tool descriptions — they directly impact routing accuracy.
+- "Revenue, orders, and customer metrics. Use for sales performance questions."
+- "Campaign performance, ad spend, and conversion data. Use for marketing questions."
 
 ### Grant access
 
-After creating the agent, grant usage to roles that need it:
+After creating the agent, grant usage to other roles that need it:
 
 ```sql
 GRANT USAGE ON AGENT my_db.my_schema.my_analytics_agent TO ROLE analyst_role;
 ```
 
+You can also do this in Snowsight under **Access** on the agent details page.
+
 
 ## Update Your API Calls
-Duration: 10
 
 ### Request: before and after
 
@@ -445,7 +369,6 @@ for block in result["message"]["content"]:
 
 
 ## Parse the New Response Format
-Duration: 10
 
 ### Content block types
 
@@ -580,7 +503,6 @@ def ask_agent_streaming(question: str, database: str, schema: str, agent_name: s
 
 
 ## Use Multi-Turn Conversations with Threads
-Duration: 5
 
 ### How Cortex Analyst handles multi-turn
 
@@ -684,7 +606,6 @@ result2 = ask_agent_with_thread(
 
 
 ## Handle Edge Cases
-Duration: 5
 
 ### Legacy semantic models on stages
 
@@ -789,14 +710,13 @@ This is useful for testing but not recommended for production — use a persiste
 
 
 ## Update Monitoring
-Duration: 3
 
 ### Observability changes
 
-| What | Cortex Analyst | Cortex Agents |
+| Concept | Cortex Analyst | Cortex Agents |
 | :--- | :--- | :--- |
-| Usage view | `CORTEX_ANALYST_REQUESTS_V` | `CORTEX_AGENT_USAGE_HISTORY` |
-| Credit tracking | `cortex_analyst` service type | `cortex_agents` service type |
+| Usage tracking view | `CORTEX_ANALYST_REQUESTS_V` | `CORTEX_AGENT_USAGE_HISTORY` |
+| Credit service type | `cortex_analyst` | `cortex_agents` |
 | Feedback endpoint | `POST /api/v2/cortex/analyst/feedback` | `POST /api/v2/databases/{db}/schemas/{schema}/agents/{name}:feedback` |
 
 ### Monitoring queries
@@ -851,7 +771,6 @@ def send_feedback(
 
 
 ## Validate Your Migration
-Duration: 5
 
 ### Step-by-step validation
 
@@ -893,7 +812,6 @@ Duration: 5
 
 
 ## Conclusion and Next Steps
-Duration: 1
 
 You've upgraded from Cortex Analyst to Cortex Agents. Your application now benefits from:
 
