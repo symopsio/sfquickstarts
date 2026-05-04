@@ -358,6 +358,48 @@ By the end of Demo 1 you have a Silver-grade AP invoices Dynamic Table, an opera
 
 A month later, the business sends a PRD that expands the AP invoices pipeline. New source systems must be added, field requirements have changed, and some definitions need clarification. Rather than solving this once with a long prompt every time, you can standardize the workflow as a custom skill.
 
+### About the Sample PRD
+
+The file `sample_business_requirements.xlsx` contains three sheets prepared by the Finance Transformation PMO:
+
+**Sheet 1 — Source Onboarding Requests**
+
+| Request ID | Source System | ERP Platform | Region | Priority | Go-Live Target | Status |
+|---|---|---|---|---|---|---|
+| SRC-2025-003 | Baan IV | Infor Baan | EMEA (Netherlands + UK) | HIGH | Q3 2025 | Approved — mapping in progress |
+| SRC-2025-004 | Workday Financial Management | Workday | Americas (US + Canada) | MEDIUM | Q3 2025 (after Baan) | Pending — legal review |
+
+**Sheet 2 — Column Mapping Specifications**
+
+Key mappings for each new source into the Silver standardized schema:
+
+| Source Column (Baan) | Silver Target | Transform | Notes |
+|---|---|---|---|
+| `BAN_INVOICE_ID` | `INVOICE_ID` | Direct map | Primary key. Format: BAN-NNN |
+| `BAN_INVOICE_REF` | `INVOICE_NUMBER` | Direct map | Business-facing number — use for dedup |
+| `BAN_STATUS` | `APPROVAL_STATUS` | Map values | POSTED→APPROVED, APPROVED→APPROVED, PENDING→PENDING |
+| `BAN_PAY_TERMS` | `PAYMENT_TERMS` | Normalize? | Uses "N30", "N60" — decision pending |
+| `BAN_COMPANY` | — | **DROP** | Not needed in Silver |
+
+| Source Column (Workday) | Silver Target | Transform | Notes |
+|---|---|---|---|
+| `WD_INVOICE_ID` | `INVOICE_ID` | Direct map | Format: WD-NNN |
+| `WD_APPROVAL_STATUS` | `APPROVAL_STATUS` | Map values | Approved→APPROVED, In Review→PENDING |
+| `WD_PAY_TERMS` | `PAYMENT_TERMS` | Normalize? | Uses "Net 30", "Net 60" — decision pending |
+| `WD_TENANT_ID` | — | **DROP** | WD-T1=US, WD-T2=London. Not needed in Silver |
+
+**Sheet 3 — Business Rules & Exceptions**
+
+| Rule ID | Rule | Decision |
+|---|---|---|
+| BR-001 | Status normalization: map all variants to APPROVED or PENDING | Confirmed — implement as CASE statement |
+| BR-002 | Do NOT convert currencies at Silver; store original transaction currency | Confirmed — FX conversion happens in Gold |
+| BR-003 | Baan duplicate detection: deduplicate on `INVOICE_NUMBER` using latest `CREATED_AT` | Engineering to implement with `QUALIFY ROW_NUMBER()` |
+| BR-005 | Payment terms normalization (N30 vs NET30 vs Net 30) | **OPEN** — normalize at Gold layer for now |
+| BR-006 | GL account cross-reference: store original GL code as-is at Silver | Confirmed — CoA mapping is Phase 2 |
+| BR-007 | Every row must include `SOURCE_SYSTEM` literal ('BAAN' or 'WORKDAY') | Established pattern from Phase 1 |
+| BR-009 | Silver DT uses `TARGET_LAG = DOWNSTREAM`; Gold proposed at 2 hours | Engineering decision |
+
 ### Step 2.1 – Read the Local PRD
 
 Start by understanding the business request. Assume you have a file `sample_business_requirements.xlsx` in your working directory.
