@@ -1,13 +1,13 @@
-author: Chase Ginther
+author: Haley Massa, Chase Ginther
 id: cortex-code-foundations
 language: en
-summary: A hands-on guide to installing, configuring, and using Cortex Code (CoCo) — Snowflake's AI coding agent — including CLI setup and workshop demos for building data pipelines, agents, and semantic views.
+summary: A hands-on guide to installing, configuring, and using Cortex Code: Snowflake's AI coding agent, including CLI setup and workshop demos for building data pipelines, agents, and semantic views.
 categories: snowflake-site:taxonomy/solution-center/certification/quickstart
 environments: web
 status: Published
 feedback link: https://github.com/Snowflake-Labs/sfguides/issues
 
-# Getting Started with Cortex Code
+# Cortex Code Foundations
 <!-- ------------------------ -->
 ## Overview
 
@@ -296,7 +296,7 @@ COCO_WORKSHOP.SOURCE_DATA.BRONZE_ORACLE_AP_INVOICES.
 
 When finished, exit Plan Mode — it should turn off automatically when you approve execution.
 
-### Step 1.4 – Use the Bundled `$dynamic-tables` Skill
+### Step 1.4 – Use the Bundled $dynamic-tables Skill
 
 Skills are reusable workflows that tell Cortex Code how to handle a specific Snowflake task. Instead of responding in a completely open-ended way, a skill provides domain context, expected inputs, a defined process, and structured outputs.
 
@@ -402,7 +402,7 @@ For this quickstart, use a **project skill** so anyone who clones the repo gets 
 
 ### Step 2.2 – Scaffold a Custom Skill
 
-Confirm the `$skill-development` workflow is available:
+Confirm the `$skill-development` workflow is available with the following prompt:
 
 ```
 /skill list
@@ -455,7 +455,7 @@ Return:
 
 ### Step 2.4 – Apply the Update
 
-Use the structured output from the skill to update the Dynamic Table:
+Use the structured output from the skill to update the Dynamic Table with the following prompt:
 
 ```
 Update SILVER_AP_INVOICES in my current schema using the change plan from
@@ -475,6 +475,7 @@ Return:
 
 ### Step 2.5 – Save Handoff Artifacts *(optional)*
 
+**Prompt:**
 ```
 List the artifacts in a local markdown file I should save from this PRD-driven update
 so another engineer can review the change, rerun the checks, and reuse the
@@ -493,7 +494,7 @@ By this point you have a curated AP invoices Silver object and a repeatable way 
 
 ### Step 3.1 – Define the Agent Use Case
 
-Keep the first pass narrow and grounded in the data product you built:
+Keep the first pass narrow and grounded in the data product you built with this prompt:
 
 ```
 Help me define a Cortex data agent on top of SILVER_AP_INVOICES in my current schema.
@@ -508,6 +509,7 @@ Suggest:
 
 Create a semantic view that exposes business-friendly dimensions and measures. This is the object the agent will rely on for most of its answers.
 
+**Prompt:**
 ```
 Let's start by building the semantic model using the $semantic-view.
 Create a semantic view called SV_AP_ANALYTICS over <YOUR_SCHEMA>.SILVER_AP_INVOICES.
@@ -524,7 +526,7 @@ Return:
 
 ### Step 3.3 – Create a Cortex Agent
 
-Now create a Cortex data agent that uses the semantic view to answer natural-language questions:
+Now create a Cortex data agent that uses the semantic view to answer natural-language questions with the following prompt:
 
 ```
 $cortex-agent
@@ -541,6 +543,7 @@ Return a configuration I can save alongside my project files.
 
 With the agent created, validate the semantic view and get improvement suggestions:
 
+**Prompt:**
 ```
 Help me audit my Semantic View for best practices and provide suggestions.
 ```
