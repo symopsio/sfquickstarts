@@ -616,6 +616,8 @@ pip install pyspark==4.0.0 jupyter python-dotenv requests
 jupyter notebook spark_iceberg_interop.ipynb
 ```
 
+> **Note**: PySpark 4.0 requires **Java 17 or 21**. Java 25 is not compatible. Check with `java -version` before running the notebook.
+
 ### Connect Spark to Horizon Catalog
 
 The pre-configured notebook creates a Spark session with the Horizon Catalog:
