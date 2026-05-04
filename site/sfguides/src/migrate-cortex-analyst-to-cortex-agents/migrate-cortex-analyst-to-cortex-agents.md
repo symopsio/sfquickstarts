@@ -562,11 +562,17 @@ This returns a non-streaming JSON response and is useful for testing, notebooks,
 
 ### Observability changes
 
-| Concept | Cortex Analyst | Cortex Agents |
-| :--- | :--- | :--- |
-| Usage tracking view | `CORTEX_ANALYST_REQUESTS_V` | `CORTEX_AGENT_USAGE_HISTORY` |
-| Credit service type | `cortex_analyst` | `cortex_agents` |
-| Feedback endpoint | `POST /api/v2/cortex/analyst/feedback` | `POST /api/v2/databases/{db}/schemas/{schema}/agents/{name}:feedback` |
+**Usage tracking view**
+- Cortex Analyst: `CORTEX_ANALYST_REQUESTS_V`
+- Cortex Agents: `CORTEX_AGENT_USAGE_HISTORY`
+
+**Credit service type**
+- Cortex Analyst: `cortex_analyst`
+- Cortex Agents: `cortex_agents`
+
+**Feedback endpoint**
+- Cortex Analyst: `POST /api/v2/cortex/analyst/feedback`
+- Cortex Agents: `POST /api/v2/databases/{db}/schemas/{schema}/agents/{name}:feedback`
 
 ### Monitoring queries
 
