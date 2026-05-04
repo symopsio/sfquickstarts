@@ -211,14 +211,6 @@ This workshop follows a single AP invoices storyline across three demos — from
 
 ### Lab Environment
 
-| Setting | Value |
-|---|---|
-| Database | `COCO_WORKSHOP` |
-| Shared inputs | `COCO_WORKSHOP.SOURCE_DATA` (read-only) |
-| Your outputs | `COCO_WORKSHOP.<YOUR_SCHEMA>` |
-| Role | `COCO_WORKSHOP_ROLE` |
-| Warehouse | `COCO_WORKSHOP_WH` |
-
 Set your context before starting:
 
 ```sql
@@ -249,14 +241,13 @@ You also need the `SNOWFLAKE.CORTEX_USER` database role on your user (directly o
 <!-- ------------------------ -->
 ## Demo 1: Pipeline Builder
 
-**Duration: ~20 minutes**
-
 Finance needs a trusted AP invoices layer. SAP and Oracle invoice data already exist in Snowflake, but there is no standardized Silver object yet. The goal is a single, well-modeled table that can be explained, monitored, and evolved without repeating discovery work each time a requirement changes.
 
 ### Step 1.1 – Discover the Source
 
-Begin with data discovery — a natural first move when you enter a new schema.
+Begin with data discovery, a natural first move when you enter a new schema.
 
+**Prompt:**
 ```
 What tables are in the `COCO_WORKSHOP.SOURCE_DATA` schema?
 For each table, give me a one-line description of what it appears to contain and identify
@@ -269,6 +260,7 @@ which ones are most relevant to an AP invoices Silver layer.
 
 Once you know which tables matter, compare them to get the shortest path to a clean normalization plan.
 
+**Prompt:**
 ```
 Compare the columns between
 COCO_WORKSHOP.SOURCE_DATA.BRONZE_SAP_AP_INVOICES and
@@ -291,7 +283,7 @@ For this step, turn on **Plan Mode** (`Ctrl+P`) to see how Cortex Code thinks th
 Ctrl+P
 ```
 
-Then run:
+Then run the following prompt: 
 
 ```
 Use database COCO_WORKSHOP and my current schema for outputs.
@@ -312,12 +304,14 @@ Skills are reusable workflows that tell Cortex Code how to handle a specific Sno
 
 First, see what skills are available:
 
+**Prompt:**
 ```
 /skill list
 ```
 
 Then inspect the Dynamic Tables skill before applying it:
 
+**Prompt:**
 ```
 What does the $dynamic-tables skill do? Summarize when I should use it,
 what inputs it expects, and what kinds of output it returns.
@@ -325,6 +319,7 @@ what inputs it expects, and what kinds of output it returns.
 
 Then apply it to `SILVER_AP_INVOICES`:
 
+**Prompt:**
 ```
 $dynamic-tables
 Analyze the Dynamic Table SILVER_AP_INVOICES in my current schema.
@@ -354,62 +349,26 @@ By the end of Demo 1 you have a Silver-grade AP invoices Dynamic Table, an opera
 <!-- ------------------------ -->
 ## Demo 2: Add Local Context and Productionize
 
-**Duration: ~30 minutes**
-
 A month later, the business sends a PRD that expands the AP invoices pipeline. New source systems must be added, field requirements have changed, and some definitions need clarification. Rather than solving this once with a long prompt every time, you can standardize the workflow as a custom skill.
 
 ### About the Sample PRD
 
-The file `sample_business_requirements.xlsx` contains three sheets prepared by the Finance Transformation PMO. Download the CSVs to follow along:
+Three CSV files prepared by the Finance Transformation PMO are included in the repo under `assets/`:
 
-- [Source Onboarding Requests](assets/sample_business_requirements_source_onboarding.csv)
-- [Column Mapping Specifications](assets/sample_business_requirements_column_mapping.csv)
-- [Business Rules & Exceptions](assets/sample_business_requirements_business_rules.csv)
+- [Source Onboarding Requests](assets/sample_business_requirements_source_onboarding.csv) — new source systems (Baan, Workday), owners, priorities, and go-live targets
+- [Column Mapping Specifications](assets/sample_business_requirements_column_mapping.csv) — field-level mappings for both new sources into the Silver schema
+- [Business Rules & Exceptions](assets/sample_business_requirements_business_rules.csv) — BR-001 through BR-010 covering status normalization, dedup logic, currency handling, and open questions
 
-**Sheet 1 — Source Onboarding Requests**
-
-| Request ID | Source System | ERP Platform | Region | Priority | Go-Live Target | Status |
-|---|---|---|---|---|---|---|
-| SRC-2025-003 | Baan IV | Infor Baan | EMEA (Netherlands + UK) | HIGH | Q3 2025 | Approved — mapping in progress |
-| SRC-2025-004 | Workday Financial Management | Workday | Americas (US + Canada) | MEDIUM | Q3 2025 (after Baan) | Pending — legal review |
-
-**Sheet 2 — Column Mapping Specifications**
-
-Key mappings for each new source into the Silver standardized schema:
-
-| Source Column (Baan) | Silver Target | Transform | Notes |
-|---|---|---|---|
-| `BAN_INVOICE_ID` | `INVOICE_ID` | Direct map | Primary key. Format: BAN-NNN |
-| `BAN_INVOICE_REF` | `INVOICE_NUMBER` | Direct map | Business-facing number — use for dedup |
-| `BAN_STATUS` | `APPROVAL_STATUS` | Map values | POSTED→APPROVED, APPROVED→APPROVED, PENDING→PENDING |
-| `BAN_PAY_TERMS` | `PAYMENT_TERMS` | Normalize? | Uses "N30", "N60" — decision pending |
-| `BAN_COMPANY` | — | **DROP** | Not needed in Silver |
-
-| Source Column (Workday) | Silver Target | Transform | Notes |
-|---|---|---|---|
-| `WD_INVOICE_ID` | `INVOICE_ID` | Direct map | Format: WD-NNN |
-| `WD_APPROVAL_STATUS` | `APPROVAL_STATUS` | Map values | Approved→APPROVED, In Review→PENDING |
-| `WD_PAY_TERMS` | `PAYMENT_TERMS` | Normalize? | Uses "Net 30", "Net 60" — decision pending |
-| `WD_TENANT_ID` | — | **DROP** | WD-T1=US, WD-T2=London. Not needed in Silver |
-
-**Sheet 3 — Business Rules & Exceptions**
-
-| Rule ID | Rule | Decision |
-|---|---|---|
-| BR-001 | Status normalization: map all variants to APPROVED or PENDING | Confirmed — implement as CASE statement |
-| BR-002 | Do NOT convert currencies at Silver; store original transaction currency | Confirmed — FX conversion happens in Gold |
-| BR-003 | Baan duplicate detection: deduplicate on `INVOICE_NUMBER` using latest `CREATED_AT` | Engineering to implement with `QUALIFY ROW_NUMBER()` |
-| BR-005 | Payment terms normalization (N30 vs NET30 vs Net 30) | **OPEN** — normalize at Gold layer for now |
-| BR-006 | GL account cross-reference: store original GL code as-is at Silver | Confirmed — CoA mapping is Phase 2 |
-| BR-007 | Every row must include `SOURCE_SYSTEM` literal ('BAAN' or 'WORKDAY') | Established pattern from Phase 1 |
-| BR-009 | Silver DT uses `TARGET_LAG = DOWNSTREAM`; Gold proposed at 2 hours | Engineering decision |
+Download all three before starting Demo 2.
 
 ### Step 2.1 – Read the Local PRD
 
-Start by understanding the business request. Assume you have a file `sample_business_requirements.xlsx` in your working directory.
+Start by understanding the business request. Save the CSV files from `assets/` to your working directory, then run:
 
+**Prompt:**
 ```
-Read the local file sample_business_requirements.xlsx.
+Read the local files sample_business_requirements_source_onboarding.csv and
+sample_business_requirements_business_rules.csv.
 Summarize the changes that affect the AP invoices pipeline.
 Return:
 - New source systems being introduced
@@ -451,6 +410,7 @@ Confirm the `$skill-development` workflow is available:
 
 Then ask it to help you define the new custom skill:
 
+**Prompt:**
 ```
 This seems like a repeatable workflow I will have for many PRDs. Walk me through
 [$skill-development] for building a project skill that will help me take PRD-style
@@ -476,10 +436,11 @@ Requirements:
 
 With the custom skill in place, invoke the workflow instead of rebuilding the logic from scratch:
 
+**Prompt:**
 ```
 Run the project skill we just made prd-to-silver
 Context:
-- prd_path: sample_business_requirements.xlsx
+- prd_path: sample_business_requirements_column_mapping.csv
 - target_dynamic_table: SILVER_AP_INVOICES
 Return:
 1. Summary of requested changes
@@ -498,7 +459,9 @@ Use the structured output from the skill to update the Dynamic Table:
 
 ```
 Update SILVER_AP_INVOICES in my current schema using the change plan from
-sample_business_requirements.xlsx.
+sample_business_requirements_source_onboarding.csv,
+sample_business_requirements_column_mapping.csv, and
+sample_business_requirements_business_rules.csv.
 Assume the PRD introduces Baan and Workday as additional AP invoice sources.
 Return:
 - The updated Dynamic Table SQL
@@ -525,8 +488,6 @@ At this point the quickstart is complete for most teams: you have a curated AP i
 
 <!-- ------------------------ -->
 ## Demo 3: Build an Agent on the Data Product *(Optional)*
-
-**Duration: ~30 minutes**
 
 By this point you have a curated AP invoices Silver object and a repeatable way to evolve it based on business requirements. That is the right moment to introduce agents — because you can keep the AI experience grounded in trusted, well-modeled data.
 
