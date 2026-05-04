@@ -360,7 +360,11 @@ A month later, the business sends a PRD that expands the AP invoices pipeline. N
 
 ### About the Sample PRD
 
-The file `sample_business_requirements.xlsx` contains three sheets prepared by the Finance Transformation PMO:
+The file `sample_business_requirements.xlsx` contains three sheets prepared by the Finance Transformation PMO. Download the CSVs to follow along:
+
+- [Source Onboarding Requests](assets/sample_business_requirements_source_onboarding.csv)
+- [Column Mapping Specifications](assets/sample_business_requirements_column_mapping.csv)
+- [Business Rules & Exceptions](assets/sample_business_requirements_business_rules.csv)
 
 **Sheet 1 — Source Onboarding Requests**
 
