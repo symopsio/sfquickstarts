@@ -230,7 +230,6 @@ Run `00_sample_data.sql`. This creates and populates:
 
 If you need to start fresh, run `01_demo_reset.sql` to drop all demo-created objects, then re-run the setup scripts above.
 
-> aside positive
 > **Running this in a customer account with Cortex Code enabled?** You will need the `SNOWFLAKE.CORTEX_USER` database role on your user (directly or via a parent role) so Cortex Code CLI can use Snowflake AI features. Use the following files in the `/assets` subfolder in the repo: `00_admin_lab_setup.sql`, `01_admin_lab_reset.sql`, `02_admin_lab_teardown.sql`, `03_participant_connection_template.toml`
 
 <!-- ------------------------ -->
