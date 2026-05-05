@@ -154,8 +154,8 @@ The key differences between the two APIs:
 - **Endpoint**: `/api/v2/cortex/analyst/message` → `/api/v2/databases/{db}/schemas/{schema}/agents/{name}:run`
 - **Semantic view**: Specified when creating the agent, not in every request
 - **Stream**: Agents stream by default; set `stream: false` for a non-streaming response
-- **Response role**: `analyst` → `assistant`
-- **SQL delivery**: A `sql` content block → `tool_use` and `tool_result` blocks of type `system_execute_sql`
+- **Response shape**: Analyst wraps in `{"message": {"role": "analyst", "content": [...]}}` — Agents return `{"role": "assistant", "content": [...], "metadata": {...}}` at the top level
+- **SQL delivery**: A `sql` content block → `tool_use` and `tool_results` blocks
 - **Results included**: Agents execute the SQL and return results directly
 - **Final answer**: Agents provide a natural language summary after seeing the data
 
@@ -242,14 +242,16 @@ result = ask_agent(
 )
 
 # Extract information from Agent response
-for block in result["message"]["content"]:
+# Note: Agent response is {"role": "assistant", "content": [...], "metadata": {...}}
+for block in result["content"]:
     if block["type"] == "text":
         print(f"Text: {block['text']}")
-    elif block["type"] == "tool_result":
-        tool_content = block["tool_result"]["content"]
-        print(f"SQL: {tool_content['sql']}")
-        print(f"Query ID: {tool_content['query_id']}")
-        print(f"Results: {tool_content['result_set']}")
+    elif block["type"] == "tool_use":
+        print(f"SQL: {block['tool_use']['input']['sql']}")
+    elif block["type"] == "tool_results":
+        for item in block["tool_results"]["content"]:
+            if item["type"] == "json":
+                print(f"Query ID: {item['json'].get('query_id')}")
 ```
 
 
@@ -264,8 +266,9 @@ Cortex Agents returns these content types:
 | Type | Description |
 | :--- | :--- |
 | `text` | Natural language explanation or answer |
+| `thinking` | The agent's internal reasoning (may be included) |
 | `tool_use` | The agent is invoking a tool (contains tool name and input) |
-| `tool_result` | The result of a tool invocation (contains output data) |
+| `tool_results` | The result of a tool invocation (contains output data) |
 
 ### Extracting SQL and results
 
@@ -275,22 +278,25 @@ In Cortex Analyst, SQL lives in a `sql` content block:
 statement = block["statement"]
 ```
 
-In Cortex Agents, SQL appears in both `tool_use` (the generated query) and `tool_result` (the executed query plus results):
+In Cortex Agents, SQL appears in `tool_use` blocks (the generated query) and `tool_results` blocks (the execution output):
 ```python
-# Agent - from tool_use
+# Agent - from tool_use (the SQL the agent generated)
 sql = block["tool_use"]["input"]["sql"]
 
-# Agent - from tool_result (includes execution results)
-sql = block["tool_result"]["content"]["sql"]
-query_id = block["tool_result"]["content"]["query_id"]
-results = block["tool_result"]["content"]["result_set"]
+# Agent - from tool_results (execution output as JSON items)
+for item in block["tool_results"]["content"]:
+    if item["type"] == "json":
+        query_id = item["json"].get("query_id")
 ```
 
 ### Complete response parser
 
 ```python
 def parse_agent_response(response: dict) -> dict:
-    """Parse a Cortex Agents response into structured components."""
+    """Parse a Cortex Agents response into structured components.
+
+    The response shape is: {"role": "assistant", "content": [...], "metadata": {...}}
+    """
     parsed = {
         "text_blocks": [],
         "sql_statements": [],
@@ -298,21 +304,25 @@ def parse_agent_response(response: dict) -> dict:
         "query_ids": [],
     }
 
-    for block in response["message"]["content"]:
+    for block in response["content"]:
         if block["type"] == "text":
             parsed["text_blocks"].append(block["text"])
 
         elif block["type"] == "tool_use":
-            if block["tool_use"]["name"] == "system_execute_sql":
-                parsed["sql_statements"].append(
-                    block["tool_use"]["input"]["sql"]
-                )
+            # tool_use contains the SQL the agent generated
+            sql = block["tool_use"].get("input", {}).get("sql")
+            if sql:
+                parsed["sql_statements"].append(sql)
 
-        elif block["type"] == "tool_result":
-            if block["tool_result"]["name"] == "system_execute_sql":
-                content = block["tool_result"]["content"]
-                parsed["query_ids"].append(content["query_id"])
-                parsed["query_results"].append(content["result_set"])
+        elif block["type"] == "tool_results":
+            # tool_results contains execution output as content items
+            for item in block["tool_results"].get("content", []):
+                if item.get("type") == "json":
+                    data = item["json"]
+                    if "query_id" in data:
+                        parsed["query_ids"].append(data["query_id"])
+                    if "result_set" in data:
+                        parsed["query_results"].append(data["result_set"])
 
     return parsed
 
@@ -326,63 +336,20 @@ print(f"SQL: {parsed['sql_statements']}")
 print(f"Data: {parsed['query_results']}")
 ```
 
-### Handling streaming responses
+### Streaming responses
 
-Cortex Agents streams responses as server-sent events (SSE) by default. Here's how to consume them:
+Cortex Agents streams responses as server-sent events (SSE) by default. The streaming format uses `event:` and `data:` lines with event types like `response.text.delta`, `response.tool_use`, `response.tool_results`, and others.
 
-```python
-import json
+For non-streaming use (simpler to implement), set `"stream": false` in your request body — all examples in this guide use non-streaming mode.
 
-def ask_agent_streaming(question: str, database: str, schema: str, agent_name: str):
-    """Stream a response from Cortex Agents and assemble it."""
-    response = requests.post(
-        f"{ACCOUNT_URL}/api/v2/databases/{database}/schemas/{schema}/agents/{agent_name}:run",
-        headers={
-            "Authorization": f"Bearer {PAT}",
-            "Content-Type": "application/json",
-        },
-        json={
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [{"type": "text", "text": question}],
-                }
-            ],
-            "stream": True,
-        },
-        stream=True,
-    )
-    response.raise_for_status()
-
-    full_text = ""
-    for line in response.iter_lines(decode_unicode=True):
-        if not line or not line.startswith("data:"):
-            continue
-
-        data_str = line[len("data:"):].strip()
-        if data_str == "[DONE]":
-            break
-
-        event = json.loads(data_str)
-
-        # Handle delta events
-        if "delta" in event:
-            delta = event["delta"]
-            if delta.get("type") == "text":
-                text_chunk = delta.get("text", "")
-                full_text += text_chunk
-                print(text_chunk, end="", flush=True)
-
-    print()  # Newline after streaming completes
-    return full_text
-```
+For streaming implementation details and event schemas, see the [Cortex Agents Run API documentation](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-run).
 
 ### Mapping Analyst content types to Agent equivalents
 
 | Analyst | Agent equivalent | How to detect |
 | :--- | :--- | :--- |
 | `type: "text"` | `type: "text"` | Same — direct text content |
-| `type: "sql"` with `statement` | `type: "tool_result"` with `system_execute_sql` | Check `tool_result.name == "system_execute_sql"` |
+| `type: "sql"` with `statement` | `type: "tool_use"` + `type: "tool_results"` | Check for `tool_use` blocks containing `sql` in input |
 | `type: "suggestions"` | `type: "text"` with clarification questions | Agent asks follow-up questions as natural text |
 | `confidence.verified_query_used` | Not directly exposed | Verified queries still influence SQL generation but are not surfaced in the response |
 
@@ -437,8 +404,8 @@ def ask_agent_with_thread(
     database: str,
     schema: str,
     agent_name: str,
-    thread_id: str,
-    parent_message_id: str = "0",
+    thread_id: int,
+    parent_message_id: int = 0,
 ) -> dict:
     """Send a message in the context of an existing thread."""
     response = requests.post(
@@ -471,15 +438,15 @@ result1 = ask_agent_with_thread(
     "What was revenue last quarter?",
     "my_db", "my_schema", "my_analytics_agent",
     thread_id=thread_id,
-    parent_message_id="0",
+    parent_message_id=0,
 )
 
-# Follow-up (no need to resend history)
+# Follow-up — use assistant_message_id from the previous response metadata
 result2 = ask_agent_with_thread(
     "Break that down by region",
     "my_db", "my_schema", "my_analytics_agent",
     thread_id=thread_id,
-    parent_message_id=result1["request_id"],
+    parent_message_id=result1["metadata"]["assistant_message_id"],
 )
 ```
 
@@ -546,13 +513,23 @@ For complex questions that need multiple tool calls, increase these values. For 
 
 ### Using SQL instead of REST
 
-You can also run an agent from SQL using `DATA_AGENT_RUN`:
+You can also run an agent from SQL using `SNOWFLAKE.CORTEX.DATA_AGENT_RUN`:
 
 ```sql
-SELECT DATA_AGENT_RUN(
-  'my_db.my_schema.my_analytics_agent',
-  'What was total revenue last quarter?'
-);
+SELECT TRY_PARSE_JSON(
+  SNOWFLAKE.CORTEX.DATA_AGENT_RUN(
+    'my_db.my_schema.my_analytics_agent',
+    $${
+      "parent_message_id": 0,
+      "messages": [
+        {
+          "role": "user",
+          "content": [{"type": "text", "text": "What was total revenue last quarter?"}]
+        }
+      ]
+    }$$
+  )
+) AS resp;
 ```
 
 This returns a non-streaming JSON response and is useful for testing, notebooks, or stored procedure integrations.
@@ -563,8 +540,8 @@ This returns a non-streaming JSON response and is useful for testing, notebooks,
 ### Observability changes
 
 **Usage tracking view**
-- Cortex Analyst: `CORTEX_ANALYST_REQUESTS_V`
-- Cortex Agents: `CORTEX_AGENT_USAGE_HISTORY`
+- Cortex Analyst: `SNOWFLAKE.LOCAL.CORTEX_ANALYST_REQUESTS_V`
+- Cortex Agents: `SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS` (see [Monitor Cortex Agent requests](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-monitor))
 
 **Credit service type**
 - Cortex Analyst: `cortex_analyst`
@@ -576,19 +553,17 @@ This returns a non-streaming JSON response and is useful for testing, notebooks,
 
 ### Monitoring queries
 
-**Find recent agent usage:**
+**Find recent agent requests:**
 
 ```sql
-SELECT
-  request_id,
-  user_name,
-  start_time,
-  end_time,
-  DATEDIFF('second', start_time, end_time) AS duration_seconds,
-  tokens_granular
-FROM SNOWFLAKE.ACCOUNT_USAGE.CORTEX_AGENT_USAGE_HISTORY
-WHERE start_time > DATEADD('day', -7, CURRENT_TIMESTAMP())
-ORDER BY start_time DESC;
+SELECT * FROM TABLE(
+  SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+    'CORTEX_AGENT',
+    'my_db.my_schema.my_analytics_agent'
+  )
+)
+ORDER BY timestamp DESC
+LIMIT 100;
 ```
 
 ### Sending feedback
