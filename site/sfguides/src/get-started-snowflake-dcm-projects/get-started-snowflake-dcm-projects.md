@@ -428,11 +428,11 @@ When you're done, open `scripts/03_cleanup.sql` in a Snowsight worksheet and run
 USE ROLE dcm_developer;
 EXECUTE DCM PROJECT dcm_demo.projects.dcm_project_dev PURGE;
 
-USE ROLE ACCOUNTADMIN;
 DROP DCM PROJECT IF EXISTS dcm_demo.projects.dcm_project_dev;
 DROP SCHEMA IF EXISTS dcm_demo.projects;
 DROP DATABASE IF EXISTS dcm_demo;
 
+USE ROLE ACCOUNTADMIN;
 DROP ROLE IF EXISTS dcm_developer;
 ```
 
