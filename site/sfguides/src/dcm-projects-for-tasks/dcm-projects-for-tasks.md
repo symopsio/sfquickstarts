@@ -34,8 +34,6 @@ Along the way, you'll see two DCM features that make Tasks a first-class citizen
 - **`DEFINE TASK ... STARTED | SUSPENDED`** — declare the target state of every task so you never need an `ALTER TASK ... RESUME` post-script
 - **`DEFINE PROCEDURE`** — manage SQL stored procedures through DCM Plan & Deploy alongside the tasks that call them
 
-> **Note:** DCM Projects is currently in Public Preview. See the [DCM Projects extended capabilities](https://docs.snowflake.com/en/dcm-projects/dcm-projects-early-access) doc for additional capabilities.
-
 ### Prerequisites
 - Basic knowledge of Snowflake concepts (databases, schemas, tables, roles)
 - Familiarity with SQL and [Snowflake Tasks](https://docs.snowflake.com/en/user-guide/tasks-intro)
