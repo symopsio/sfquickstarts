@@ -320,12 +320,11 @@ Adding or removing an attachment here changes the `CHECK_DATA_QUALITY` task's be
 
 ### Alerts — `sources/definitions/alerts.sql`
 
-The failed-task alert is defined declaratively with `DEFINE ALERT`. The `STARTED` target-state property means the alert is active the moment the deployment completes — no `ALTER ALERT ... RESUME` post-script needed. The recipient email comes from the same `{{notification_recipient}}` manifest value the finalizer uses, so you only configure it in one place.
+The failed-task alert is defined declaratively with `DEFINE ALERT`, so the alert lives alongside the tasks it monitors and evolves through the same Plan/Deploy cycle. The alert is created suspended — you'll resume it once in `scripts/02_post_deploy.sql` with `ALTER ALERT ... RESUME`. The recipient email comes from the same `{{notification_recipient}}` manifest value the finalizer uses, so you only configure it in one place.
 
 ```sql
 DEFINE ALERT DCM_DEMO_4{{env_suffix}}.PIPELINE.FAILED_TASK_ALERT
     SCHEDULE = '60 MINUTE'
-    STARTED
     IF (EXISTS (
         SELECT NAME, SCHEMA_NAME
         FROM TABLE(DCM_DEMO_4{{env_suffix}}.INFORMATION_SCHEMA.TASK_HISTORY(
@@ -350,7 +349,7 @@ DEFINE ALERT DCM_DEMO_4{{env_suffix}}.PIPELINE.FAILED_TASK_ALERT
         END;
 ```
 
-The alert runs **serverless** (no warehouse specified), checks for any failed task in the last interval, and emails the list if the condition is true. `SNOWFLAKE.ALERT.GET_CONDITION_QUERY_UUID()` gives you the result of the condition query so you don't have to re-run it to build the message.
+The alert runs **serverless** (no warehouse specified) and monitors **every task** in the database for failures in the last interval — a broader scope than the finalizer. Think of them as complementary rather than overlapping: the finalizer gives you a detailed per-run summary (even when the graph failed mid-way), while the alert is a lighter-weight, database-wide safety net that only fires when something fails. `SNOWFLAKE.ALERT.GET_CONDITION_QUERY_UUID()` lets you re-use the result of the condition query so you don't have to re-run it to build the message.
 
 ### Tasks — `sources/definitions/tasks.sql`
 
@@ -470,7 +469,7 @@ Deployment takes about 30–60 seconds. When it succeeds, every `STARTED` task i
 <!-- ------------------------ -->
 ## Post-Deploy: Stream and a Manual Run
 
-Streams are not yet supported as DCM `DEFINE` statements, so the stream setup still lives in `scripts/02_post_deploy.sql`. (The DMF attachments and the failed-task alert are already DCM-managed — see `expectations.sql` and `alerts.sql` above.)
+Streams are not yet supported as DCM `DEFINE` statements, so the stream setup still lives in `scripts/02_post_deploy.sql`. The script also resumes the DCM-managed failed-task alert (which deploys suspended) and triggers the first graph run. (The DMF attachments and the failed-task alert definition are already DCM-managed — see `expectations.sql` and `alerts.sql` above.)
 
 Open that script in a Snowsight worksheet and walk through it section by section.
 
@@ -484,7 +483,15 @@ CREATE OR REPLACE STREAM dcm_demo_4_dev.pipeline.demo_stream
 
 `DEMO_TASK_8` has `WHEN SYSTEM$STREAM_HAS_DATA('...DEMO_STREAM')`, so without data it is skipped on every graph run — exactly the "conditional execution on a stream" scenario.
 
-### 2. Seed the Source Table and Run the Graph
+### 2. Resume the Failed-Task Alert
+
+```sql
+ALTER ALERT dcm_demo_4_dev.pipeline.failed_task_alert RESUME;
+```
+
+The alert was deployed by DCM but starts suspended — this one-time `RESUME` flips it to running. From here on it evaluates on its 60-minute schedule.
+
+### 3. Seed the Source Table and Run the Graph
 
 ```sql
 INSERT INTO dcm_demo_4_dev.pipeline.weather_data_source (...) VALUES (...);
@@ -527,7 +534,7 @@ Check your inbox — you should see **two kinds of notification email** from thi
 | Email subject | Sent by | When it fires |
 |---|---|---|
 | **DCM Task Graph Run Summary (_DEV)** | `DEMO_FINALIZER` — a DCM-managed finalizer task | After **every** graph run, with a JSON summary of task statuses, return values, and durations |
-| **DCM Pipeline — Failed Task Alert** | `FAILED_TASK_ALERT` — the serverless alert in `02_post_deploy.sql` | Every 60 minutes, **only** when at least one task failed since the last check |
+| **DCM Pipeline — Failed Task Alert** | `FAILED_TASK_ALERT` — the DCM-managed serverless alert (defined in `alerts.sql`, resumed in `02_post_deploy.sql`) | Every 60 minutes, **only** when at least one task failed since the last check |
 
 The finalizer gives you per-run detail; the alert is a background safety net that catches failures even if the finalizer itself errors out.
 
@@ -580,7 +587,7 @@ In this guide, you learned how to:
 - **Manage stored procedures through DCM** with `DEFINE PROCEDURE`, so the procs your tasks call version alongside the tasks themselves
 - **Send plain-text email summaries from a finalizer task** using a reusable JSON summary helper function
 - **Build a DMF-backed quality gate** that uses return-value routing to push clean rows to a target table and bad rows to quarantine — and make the set of checks completely data-driven
-- **Monitor graph health with a DCM-managed serverless alert** (`DEFINE ALERT ... STARTED`) that emails you whenever any task in the graph fails
+- **Monitor graph health with a DCM-managed serverless alert** (`DEFINE ALERT`) that emails you whenever any task in the database fails
 
 The combination of DCM Projects and Tasks gives you the same production-grade workflow for orchestration that you already have for tables: version-controlled definitions, environment-aware deployments, and Plan/Deploy reviewability for every change.
 
