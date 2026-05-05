@@ -14,18 +14,18 @@ fork repo link: https://github.com/Snowflake-Labs/snowflake-dcm-projects
 
 In the [Get Started with Snowflake DCM Projects](https://www.snowflake.com/en/developers/guides/get-started-snowflake-dcm-projects/), [Build Data Pipelines with Snowflake DCM Projects](https://www.snowflake.com/en/developers/guides/build-data-pipelines-with-snowflake-dcm-projects/), and [DCM Projects for Dynamic Tables](https://www.snowflake.com/en/developers/guides/dcm-projects-for-dynamic-tables/) guides, you learned how DCM Projects manage Snowflake infrastructure declaratively — from a single project up to dynamic-table pipelines that evolve without full recomputation.
 
-In this guide, you'll focus on **Tasks and task graphs** — the orchestration layer that drives scheduled and event-driven work across your pipeline.
+In this guide, you'll focus on **Tasks and Task graphs** — the orchestration layer that drives scheduled and event-driven work across your pipeline.
 
 Task graphs (DAGs, or directed acyclic graphs, of Tasks — meaning dependencies flow in one direction and no task can loop back to itself) are how most production Snowflake pipelines coordinate sequences of work: a root task kicks off every run, child tasks depend on their predecessors, streams and return values can gate downstream execution, and a finalizer closes out the run. Managing that whole graph as code — with retries, schedules, warehouse bindings, and config values promoted across environments — becomes much easier to maintain as a DCM Project.
 
 You'll define a fifteen-task demo graph that shows off every interesting Task feature in one place:
 
 - **Root task with retries, overlap policy, and graph-level config** pushed into children via `SYSTEM$GET_TASK_GRAPH_CONFIG`
-- **Finalizer task** that emails a plain-text JSON summary of every graph run
+- **Finalizer task** that emails a plain-text JSON summary of every graph run — even when it failed mid-way
 - **Serverless task** and **multi-predecessor task** patterns
 - **Stream-conditional** and **return-value-conditional** child tasks
 - **Failing task with retries** + dependent that gets skipped
-- **DCM-managed target state** — a task deployed as `SUSPENDED` that never runs
+- **DCM-managed target state** — `DEFINE TASK ... STARTED` lets you deploy tasks already running, no post-deploy `ALTER TASK ... RESUME` needed (or flip a task to `SUSPENDED` declaratively from Git)
 - **DMF quality gate** that routes rows to a target or quarantine table based on data metric function results
 - **Overlap policy** on the root task — the new `OVERLAP_POLICY` parameter gives you granular control over concurrent graph execution
 
