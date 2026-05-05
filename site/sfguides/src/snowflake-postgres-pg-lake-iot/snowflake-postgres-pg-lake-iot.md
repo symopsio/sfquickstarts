@@ -32,7 +32,7 @@ pg_lake supports two storage options for exchanging data between Postgres and Sn
 | Data residency | Data resides in the customer's cloud account | Data never leaves the Snowflake security perimeter |
 | Use when | You need to share data with systems outside of Snowflake, retain data in your own storage, or integrate with existing data lake architectures | You want the simplest setup, maximum security, and data exchange is exclusively between Snowflake Postgres and Snowflake |
 
-This quickstart uses the **external stage** approach with customer-provided S3 storage. For the internal stage version where data never leaves Snowflake, see ![Bidirectional Data Pipelines with pg_lake and Snowflake - Internal Stage](en/developers/guides/snowflake-postgres-pg-lake-iot-internal-stage/).
+This quickstart uses the **external stage** approach with customer-provided S3 storage. For the internal stage version where data never leaves Snowflake, see [Bidirectional Data Pipelines with pg_lake and Snowflake - Internal Stage](en/developers/guides/snowflake-postgres-pg-lake-iot-internal-stage/).
 
 ### Use Case: IoT Sensor Monitoring
 
