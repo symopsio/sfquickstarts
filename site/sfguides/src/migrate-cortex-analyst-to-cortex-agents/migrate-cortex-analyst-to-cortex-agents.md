@@ -572,7 +572,7 @@ LIMIT 100;
 curl -X POST "$SNOWFLAKE_ACCOUNT_BASE_URL/api/v2/databases/my_db/schemas/my_schema/agents/my_analytics_agent:feedback" \
   --header "Authorization: Bearer $PAT" \
   --header 'Content-Type: application/json' \
-  --data '{"request_id": "<request_id>", "positive": true, "feedback_message": "Correct answer"}'
+  --data '{"orig_request_id": "<request_id>", "positive": true, "feedback_message": "Correct answer"}'
 ```
 
 
