@@ -239,6 +239,32 @@ You also need the `SNOWFLAKE.CORTEX_USER` database role on your user (directly o
 | **Automated** | Executes an agreed workflow end to end with fewer prompts, once you are comfortable with the pattern. | Trusted, non-production environments where the workflow has already been validated. | `Shift+Tab` |
 
 <!-- ------------------------ -->
+## Lab Setup
+
+Before starting the demos, run the setup scripts to create the workshop environment and load sample data. Download from `assets/` or run directly in Snowsight:
+
+### Step 1: Create the Workshop Environment
+
+Run [00_snowday_setup.sql](assets/00_snowday_setup.sql) as `SYSADMIN`. This creates:
+- `COCO_WORKSHOP` database
+- `PIPELINE_LAB` and `SOURCE_DATA` schemas
+- `COCO_WORKSHOP_WH` warehouse (X-Small, auto-suspend 120s)
+- Tags for optional governance exercises
+
+### Step 2: Load Sample Data
+
+Run [00_sample_data.sql](assets/00_sample_data.sql). This creates and populates:
+- `BRONZE_SAP_AP_INVOICES` — 15 SAP invoices (USD, EUR, GBP)
+- `BRONZE_ORACLE_AP_INVOICES` — 15 Oracle invoices (USD, EUR, GBP)
+- `BRONZE_BAAN_AP_INVOICES` — 10 Baan invoices (EUR, GBP) — used in Demo 2
+- `BRONZE_WORKDAY_AP_INVOICES` — 10 Workday invoices (USD, GBP, EUR) — used in Demo 2
+- `AGENT_EVAL_SET` — 15 golden evaluation questions — used in Demo 3
+
+### Resetting Between Runs
+
+If you need to start fresh, run [01_demo_reset.sql](assets/01_demo_reset.sql) to drop all demo-created objects, then re-run the setup scripts above.
+
+<!-- ------------------------ -->
 ## Demo 1: Pipeline Builder
 
 Finance needs a trusted AP invoices layer. SAP and Oracle invoice data already exist in Snowflake, but there is no standardized Silver object yet. The goal is a single, well-modeled table that can be explained, monitored, and evolved without repeating discovery work each time a requirement changes.
