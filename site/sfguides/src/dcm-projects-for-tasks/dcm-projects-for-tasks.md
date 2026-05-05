@@ -138,7 +138,7 @@ CREATE OR REPLACE DCM PROJECT dcm_demo.projects.dcm_tasks_project_dev
     COMMENT = 'for testing DCM Projects with Tasks and task graphs';
 ```
 
-### 6. Create the Email Notification Integration
+### 5. Create the Email Notification Integration
 
 Notification integrations are account-level objects — they live outside any DCM Project. The finalizer task and the failed-task alert both send through this integration:
 
@@ -153,7 +153,7 @@ CREATE NOTIFICATION INTEGRATION IF NOT EXISTS dcm_demo_email_notifications
 GRANT USAGE ON INTEGRATION dcm_demo_email_notifications TO ROLE dcm_developer;
 ```
 
-### 7. Get Your Account Identifier and Username
+### 6. Get Your Account Identifier and Username
 
 ```sql
 SELECT
@@ -163,7 +163,7 @@ SELECT
 
 Keep these values — you'll paste them into `manifest.yml` and the `notification_recipient` field in the next section.
 
-### 8. Verify Your Email Address
+### 7. Verify Your Email Address
 
 The finalizer task, quality-issue notification, and failed-task alert all send email through `SYSTEM$SEND_SNOWFLAKE_NOTIFICATION`. This only works if the recipient email is **verified** on the Snowflake account.
 
