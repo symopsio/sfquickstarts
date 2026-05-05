@@ -1,12 +1,11 @@
 ```markdown
 author: Ali Alladin
-id: bridging-semantic-models-snowflake-thoughtspot-coco
-language: en
+id: bridging_semantic_models_snowflake_thoughtspot_coco
 summary: Bridge a semantic model between a Snowflake Semantic View and a ThoughtSpot Model using Cortex Code (CoCo) and the open-source thoughtspot-agent-skills, then validate equivalence conversationally.
-categories: snowflake-site:taxonomy/solution-center/certification/quickstart
+categories: getting-started, ai, cortex, semantic-views
 environments: web
 status: Published
-feedback link: https://github.com/Snowflake-Labs/sfguides/issues
+feedback link: https://github.com/Snowflake-Labs/sfquickstarts/issues
 tags: Cortex Agents, Cortex Code, CoCo, Semantic Views, ThoughtSpot, AI, Getting Started
 
 # Bridging Semantic Models Between Snowflake and ThoughtSpot with Cortex Code (CoCo)
