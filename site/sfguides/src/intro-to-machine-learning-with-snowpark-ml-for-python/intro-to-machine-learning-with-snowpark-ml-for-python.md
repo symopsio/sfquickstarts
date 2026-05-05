@@ -222,11 +222,12 @@ For more information, check out the resources below:
 
 ### Related Resources
 - [Source Code on GitHub](https://github.com/Snowflake-Labs/sfguide-intro-to-machine-learning-with-snowflake-ml-for-python)
-- [Snowflake ML Webpage](/en/data-cloud/snowflake-ml/)
+- [Snowflake ML Resources](/en/data-cloud/snowflake-ml/)
 - [Snowflake ML API Docs](https://docs.snowflake.com/en/developer-guide/snowpark-ml/index)
-- [Quickstart: Build an End-to-End ML Workflow in Snowflake
-](/en/developers/guides/end-to-end-ml-workflow/)
-- Check out other Snowflake ML quickstarts [here](https://docs.snowflake.com/en/developer-guide/snowflake-ml/quickstart)
+- [Best Practices for Production ML](https://www.snowflake.com/en/engineering-blog/best-practices-for-production-ml/)
+- [Agentic Machine Learning Best Practices with Cortex Code](https://www.snowflake.com/en/engineering-blog/agentic-ml-best-practices-cortex-code/)
+- [More ML Quickstarts](https://docs.snowflake.com/en/developer-guide/snowflake-ml/quickstart)
+- [Quickstart: Build an End-to-End ML Workflow in Snowflake](/en/developers/guides/end-to-end-ml-workflow/)
 - [Download Reference Architecture](/content/dam/snowflake-site/developers/2024/10/snowflake_ml_e2e.png)
 - [Read the Blog](https://medium.com/snowflake/end-to-end-machine-learning-with-snowpark-ml-in-snowflake-notebooks-faa42f1f57fc)
 - [Watch the Demo](https://youtu.be/LeSGBW0YoLg?list=TLGGS3MVx9ovt9oyNDA5MjAyNQ)

@@ -180,3 +180,7 @@ Congratulations! You've successfully built a complete end-to-end machine learnin
 -   **Altair Documentation**: [https://altair-viz.github.io/user_guide/api.html](https://altair-viz.github.io/user_guide/api.html)
 -   **Streamlit Documentation**: [https://docs.streamlit.io/](https://docs.streamlit.io/)
 -   **YouTube Playlist on Snowflake Notebooks**: [https://www.youtube.com/watch?v=YB1B6vcMaGE&list=PLavJpcg8cl1Efw8x_fBKmfA2AMwjUaeBI](https://www.youtube.com/watch?v=YB1B6vcMaGE&list=PLavJpcg8cl1Efw8x_fBKmfA2AMwjUaeBI)
+-   [Snowflake ML Resources](/en/data-cloud/snowflake-ml/)
+-   [Best Practices for Production ML](https://www.snowflake.com/en/engineering-blog/best-practices-for-production-ml/)
+-   [Agentic Machine Learning Best Practices with Cortex Code](https://www.snowflake.com/en/engineering-blog/agentic-ml-best-practices-cortex-code/)
+-   [More ML Quickstarts](https://docs.snowflake.com/en/developer-guide/snowflake-ml/quickstart)
