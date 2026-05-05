@@ -19,6 +19,8 @@ This quickstart walks through deploying pgAdmin4 as a Snowpark Container Service
 
 > **Instance name placeholder:** All examples use `PG_LAB` as the Snowflake Postgres instance name. Substitute your own instance name throughout.
 
+**Note:** Private Link requires Snowflake Business Critical edition or higher.
+
 ### Architecture
 
 ```
