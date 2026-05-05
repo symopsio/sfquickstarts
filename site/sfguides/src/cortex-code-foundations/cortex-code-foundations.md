@@ -205,6 +205,35 @@ What databases do I have access to?
 ![Cortex Code CLI Interface](assets/cortex_code_cli_interface.png)
 
 <!-- ------------------------ -->
+## Lab Setup
+
+Before starting the demos, run the setup scripts to create the workshop environment and load sample data. These files are in the `assets/` folder of this repo.
+
+### Step 1: Create the Workshop Environment
+
+Run `00_snowday_setup.sql` as `SYSADMIN`. This creates:
+- `COCO_WORKSHOP` database
+- `PIPELINE_LAB` and `SOURCE_DATA` schemas
+- `COCO_WORKSHOP_WH` warehouse (X-Small, auto-suspend 120s)
+- Tags for optional governance exercises
+
+### Step 2: Load Sample Data
+
+Run `00_sample_data.sql`. This creates and populates:
+- `BRONZE_SAP_AP_INVOICES` — 15 SAP invoices (USD, EUR, GBP)
+- `BRONZE_ORACLE_AP_INVOICES` — 15 Oracle invoices (USD, EUR, GBP)
+- `BRONZE_BAAN_AP_INVOICES` — 10 Baan invoices (EUR, GBP) — used in Demo 2
+- `BRONZE_WORKDAY_AP_INVOICES` — 10 Workday invoices (USD, GBP, EUR) — used in Demo 2
+- `AGENT_EVAL_SET` — 15 golden evaluation questions — used in Demo 3
+
+### Resetting Between Runs
+
+If you need to start fresh, run `01_demo_reset.sql` to drop all demo-created objects, then re-run the setup scripts above.
+
+> aside positive
+> **Running this in a customer account with Cortex Code enabled?** You will need the `SNOWFLAKE.CORTEX_USER` database role on your user (directly or via a parent role) so Cortex Code CLI can use Snowflake AI features. Use the following files in the `/assets` subfolder in the repo: `00_admin_lab_setup.sql`, `01_admin_lab_reset.sql`, `02_admin_lab_teardown.sql`, `03_participant_connection_template.toml`
+
+<!-- ------------------------ -->
 ## Workshop Overview
 
 This workshop follows a single AP invoices storyline across three demos — from data discovery through operationalization and optional agent design.
@@ -219,50 +248,6 @@ USE WAREHOUSE COCO_WORKSHOP_WH;
 USE DATABASE COCO_WORKSHOP;
 USE SCHEMA <YOUR_SCHEMA>;
 ```
-
-You also need the `SNOWFLAKE.CORTEX_USER` database role on your user (directly or via a parent role) so Cortex Code CLI can use Snowflake AI features.
-
-### Quickstart Path
-
-| Step | Demo | Outcome |
-|---|---|---|
-| 1 | Demo 1 | Discover source tables, compare SAP and Oracle schemas, build a Silver-grade AP invoices Dynamic Table, and generate an operating runbook with the Dynamic Table skill. |
-| 2 | Demo 2 | Read a local PRD, create a reusable PRD Evaluator skill, and apply repeatable updates to `SILVER_AP_INVOICES`. |
-| 3 | Demo 3 *(optional)* | Use the curated invoices object as the foundation for a Cortex data agent and establish a simple evaluation workflow. |
-
-### Execution Modes
-
-| Mode | Description | Use Case | Activation |
-|---|---|---|---|
-| **Interactive** (default) | Proposes changes and asks for confirmation before running impactful operations. | Everyday work where you want to see and approve each step. | Default |
-| **Plan Mode** | Stays read-only while it thinks, then returns a structured multi-step plan and waits for approval before executing. | Multi-step or higher-risk tasks, such as creating or updating core tables. | `Ctrl+P` or `/plan` |
-| **Automated** | Executes an agreed workflow end to end with fewer prompts, once you are comfortable with the pattern. | Trusted, non-production environments where the workflow has already been validated. | `Shift+Tab` |
-
-<!-- ------------------------ -->
-## Lab Setup
-
-Before starting the demos, run the setup scripts to create the workshop environment and load sample data. Download from `assets/` or run directly in Snowsight:
-
-### Step 1: Create the Workshop Environment
-
-Run [00_snowday_setup.sql](assets/00_snowday_setup.sql) as `SYSADMIN`. This creates:
-- `COCO_WORKSHOP` database
-- `PIPELINE_LAB` and `SOURCE_DATA` schemas
-- `COCO_WORKSHOP_WH` warehouse (X-Small, auto-suspend 120s)
-- Tags for optional governance exercises
-
-### Step 2: Load Sample Data
-
-Run [00_sample_data.sql](assets/00_sample_data.sql). This creates and populates:
-- `BRONZE_SAP_AP_INVOICES` — 15 SAP invoices (USD, EUR, GBP)
-- `BRONZE_ORACLE_AP_INVOICES` — 15 Oracle invoices (USD, EUR, GBP)
-- `BRONZE_BAAN_AP_INVOICES` — 10 Baan invoices (EUR, GBP) — used in Demo 2
-- `BRONZE_WORKDAY_AP_INVOICES` — 10 Workday invoices (USD, GBP, EUR) — used in Demo 2
-- `AGENT_EVAL_SET` — 15 golden evaluation questions — used in Demo 3
-
-### Resetting Between Runs
-
-If you need to start fresh, run [01_demo_reset.sql](assets/01_demo_reset.sql) to drop all demo-created objects, then re-run the setup scripts above.
 
 <!-- ------------------------ -->
 ## Demo 1: Pipeline Builder
@@ -379,11 +364,11 @@ A month later, the business sends a PRD that expands the AP invoices pipeline. N
 
 ### About the Sample PRD
 
-Three CSV files prepared by the Finance Transformation PMO are included in the repo under `assets/`:
+Three CSV files prepared by the Finance Transformation PMO are included in the `assets/` folder of this repo:
 
-- [Source Onboarding Requests](assets/sample_business_requirements_source_onboarding.csv) — new source systems (Baan, Workday), owners, priorities, and go-live targets
-- [Column Mapping Specifications](assets/sample_business_requirements_column_mapping.csv) — field-level mappings for both new sources into the Silver schema
-- [Business Rules & Exceptions](assets/sample_business_requirements_business_rules.csv) — BR-001 through BR-010 covering status normalization, dedup logic, currency handling, and open questions
+- `sample_business_requirements_source_onboarding.csv` — new source systems (Baan, Workday), owners, priorities, and go-live targets
+- `sample_business_requirements_column_mapping.csv` — field-level mappings for both new sources into the Silver schema
+- `sample_business_requirements_business_rules.csv` — BR-001 through BR-010 covering status normalization, dedup logic, currency handling, and open questions
 
 Download all three before starting Demo 2.
 
