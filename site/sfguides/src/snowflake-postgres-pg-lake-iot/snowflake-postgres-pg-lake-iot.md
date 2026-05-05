@@ -17,7 +17,22 @@ PostgreSQL (Postgres) extensions are loadable modules that add new functionality
 
 [pg_lake](https://github.com/Snowflake-Labs/pg_lake) is a powerful Postgres extension available in Snowflake Postgres that enables direct reading and writing of data lake files stored in cloud object storage like Amazon S3. With pg_lake, you can export data from Postgres tables directly to S3 in various formats (CSV, Parquet, JSON), query files in S3 using foreign tables without importing the data, and create Iceberg tables for open table format storage.
 
-When combined with Snowflake's data platform, pg_lake enables simple bidirectional data pipelines that leverage the operational strengths of Postgres alongside Snowflake's powerful analytics and AI capabilities.
+When combined with Snowflake's data platform, pg_lake enables simple bidirectional data pipelines that leverage the operational strengths of Postgres alongside Snowflake's powerful analytics and AI capabilities. 
+
+In this quick start guide, we use S3 as the example, however, you can also use Azure object storage as well.  For more details see the [Storage Integration documentation](https://docs.snowflake.com/en/sql-reference/sql/create-storage-integration).
+
+### External Stage vs. Internal Stage
+
+pg_lake supports two storage options for exchanging data between Postgres and Snowflake:
+
+| | External Stage | Internal Stage |
+|---|---|---|
+| Storage location | Customer-provided object storage (e.g. Amazon S3, Azure Blob) | Snowflake-managed internal object storage |
+| Configuration | Requires IAM roles, trust policies, and storage integrations for both Postgres and Snowflake | Minimal setup — automatically provisioned with the Postgres instance |
+| Data residency | Data resides in the customer's cloud account | Data never leaves the Snowflake security perimeter |
+| Use when | You need to share data with systems outside of Snowflake, retain data in your own storage, or integrate with existing data lake architectures | You want the simplest setup, maximum security, and data exchange is exclusively between Snowflake Postgres and Snowflake |
+
+This quickstart uses the **external stage** approach with customer-provided S3 storage. For the internal stage version where data never leaves Snowflake, see ![Bidirectional Data Pipelines with pg_lake and Snowflake - Internal Stage](en/developers/guides/snowflake-postgres-pg-lake-iot-internal-stage/).
 
 ### Use Case: IoT Sensor Monitoring
 

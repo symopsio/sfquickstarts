@@ -19,6 +19,19 @@ PostgreSQL (Postgres) extensions are loadable modules that add new functionality
 
 When combined with Snowflake's data platform, pg_lake enables simple bidirectional data pipelines that leverage the operational strengths of Postgres alongside Snowflake's powerful analytics and AI capabilities.
 
+### External Stage vs. Internal Stage
+
+pg_lake supports two storage options for exchanging data between Postgres and Snowflake:
+
+| | External Stage | Internal Stage |
+|---|---|---|
+| Storage location | Customer-provided object storage (e.g. Amazon S3, Azure Blob) | Snowflake-managed internal object storage |
+| Configuration | Requires IAM roles, trust policies, and storage integrations for both Postgres and Snowflake | Minimal setup — automatically provisioned with the Postgres instance |
+| Data residency | Data resides in the customer's cloud account | Data never leaves the Snowflake security perimeter |
+| Use when | You need to share data with systems outside of Snowflake, retain data in your own storage, or integrate with existing data lake architectures | You want the simplest setup, maximum security, and data exchange is exclusively between Snowflake Postgres and Snowflake |
+
+This quickstart uses the **internal stage** approach. For the external stage version using customer-provided S3 storage, see ![Bidirectional Data Pipelines with pg_lake and Snowflake - External Stage](en/developers/guides/snowflake-postgres-pg-lake-iot/).
+
 ### Use Case: IoT Sensor Monitoring
 
 This quickstart demonstrates a practical IoT sensor monitoring scenario where:
@@ -59,7 +72,7 @@ This pattern is common in operational scenarios where transactional systems need
 
 ### Data Model
 
-This lab simulates IoT sensor readings from devices across a building complex:
+This lab simulates IoT sensor readings from 10 devices across a building complex:
 
 | Sensor Type  | Devices | Value Range | Unit | Description |
 |--------------|---------|-------------|------|-------------|
@@ -161,9 +174,7 @@ Test the connection:
 
 ```bash
 psql -c "SELECT version();"
-```
-
-<!-- ------------------------ -->
+``<!-- ------------------------ -->
 ## Storage Integration Configuration
 
 When using pg_lake to move data between Postgres and Snowflake via an internal stage, no external cloud storage is required. The internal stage is automatically provisioned when the Postgres instance is created. On the Snowflake side, you need to configure a storage integration that points to it. Both platforms share this stage location to exchange data. The key advantage of using the internal stage is that data never leaves the security perimeter of Snowflake.
@@ -180,6 +191,8 @@ CREATE OR REPLACE STORAGE INTEGRATION SF_LAB_INTS3_INTEGRATION
     POSTGRES_INSTANCE = 'IOT_PG'
     ENABLED = TRUE;
 ```
+
+`
 
 <!-- ------------------------ -->
 ## Snowflake Setup
@@ -235,7 +248,7 @@ CREATE OR REPLACE TABLE SENSOR_ANOMALIES (
     AI_EXPLANATION   VARCHAR(1000),
     DETECTED_AT      TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
 );
-```
+
 
 ### Step 3: Create Storage Integration
 
@@ -249,7 +262,22 @@ CREATE OR REPLACE STAGE IOT_INT_STAGE
     STORAGE_INTEGRATION = SF_LAB_INTS3_INTEGRATION
     RELATIVE_URL = '/';
 ```
+```
 
+### St4p 3: Create File Format
+
+```sql
+-- Snowflake Setup: Ste4 3 - Create File Format
+-- Execute in: Snowsight (Snowflake)
+USE ROLE SYSADMIN;
+USE SCHEMA IOT_LAB.SENSORS;
+
+CREATE OR REPLACE FILE FORMAT CSV_FORMAT_IOT
+    TYPE = 'CSV'
+    FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+    SKIP_HEADER = 1
+    NULL_IF = ('NULL', 'null', '');
+```
 
 ### Step 4: Verify Stage Access
 
@@ -267,15 +295,15 @@ This should return an empty result (no files yet) without errors, confirming acc
 <!-- ------------------------ -->
 ## Postgres Setup
 
-Create the IoT sensor tables and generate sample data in Postgres.
+Create the IoT sens
+
+ Note: `psql` is relying on the environment variables set earlier for the connection string information.or tables and generate sample data in Postgres.
 
 ### Step 1: Enable Extensions
 
 [psql](https://www.postgresql.org/docs/current/app-psql.html) is the interactive terminal for PostgreSQL, allowing you to enter queries, execute SQL commands, and manage the database from the command line.
 
 Connect to Postgres via `psql` and enable pg_lake:
-
- Note: `psql` is relying on the environment variables set earlier for the connection string information.
 
 ```bash
 psql
@@ -377,7 +405,9 @@ CREATE TABLE sensor_anomalies (
     anomaly_id       BIGSERIAL PRIMARY KEY,
     sensor_name      TEXT NOT NULL,
     sensor_type      TEXT NOT NULL,
-    reading_ts       TIMESTAMP NOT NULL,
+    re.
+
+Note:  Notice the `@STAGE` shortcut is used to point to the shared internal stage location.ding_ts       TIMESTAMP NOT NULL,
     predicted_value  NUMERIC(10,2),
     actual_value     NUMERIC(10,2),
     anomaly_score    NUMERIC(5,4),
@@ -388,9 +418,7 @@ CREATE TABLE sensor_anomalies (
 
 ### Step 6: Create Foreign Table for Sync Files
 
-This foreign table will read anomaly files exported from Snowflake.
-
-Note:  Notice the `@STAGE` shortcut is used to point to the shared internal stage location.
+This foreign table will read anomaly files exported from Snowflake:
 
 ```sql
 -- Postgres Setup: Step 6 - Create Foreign Table for Sync Files
@@ -466,13 +494,13 @@ SELECT * FROM lake_file.list('@STAGE/iot/export/*');
 You should see the exported CSV file with its size and modification timestamp.
 
 <!-- ------------------------ -->
-## Query CSV with Foreign Tables
+## (object storage) Query CSV with Foreign Tables
 
 pg_lake enables querying files directly in object storage without importing data into Postgres tables. This is useful for ad-hoc analysis of exported data or for building data pipelines.
 
 ### Understanding Foreign Tables
 
-Foreign tables in pg_lake create a virtual table that reads from the internal stage (object storage) on demand. The data stays in the stage — queries execute by fetching and processing the data at query time. This is ideal for:
+Foreign tables in pg_lake create a virtual table that reads from the internal stage on demand. The data stays in the stage — queries execute by fetching and processing the data at query time. This is ideal for:
 - Verifying exported data before loading elsewhere
 - Querying archived data without storage overhead
 - Building lightweight data pipelines
@@ -523,7 +551,7 @@ GROUP BY sensor_type;
 <!-- ------------------------ -->
 ## Load Data into Snowflake
 
-Load the exported sensor data from the internal stage into Snowflake for analytics processing.
+Loaiot/d the exported sensor data from the internal stage into Snowflake for analytics processing.
 
 ### Step 1: Verify Files in Stage
 
@@ -533,15 +561,9 @@ In Snowflake:
 -- Load Data into Snowflake: Step 1 - Verify Files in Stage
 -- Execute in: Snowsight (Snowflake)
 USE ROLE SYSADMIN;
-USE SCHEMA IOT_LAB.SENSORS;
-USE WAREHOUSE IOT_WH;
-
-LIST @IOT_INT_STAGE/iot/export/;
-```
-
-You should see the CSV file exported from Postgres.
-
-### Step 2: Preview Data
+USE SCHEMASELECT   $1, $2, $3, $4, $5, $6
+FROM     @IOT_INT_STAGE/iot/export/sensor_readings.csv.gz
+LIMIT    10;review Data
 
 Verify the data format before loading:
 
@@ -552,8 +574,13 @@ USE ROLE SYSADMIN;
 USE SCHEMA IOT_LAB.SENSORS;
 
 SELECT   $1, $2, $3, $4, $5, $6
-FROM     @IOT_INT_STAGE/iot/export/sensor_readings.csv.gz
-LIMIT    10;
+FROM     @IOT_INT_STAGE/export/sensor_readings.csv.gz
+     iot/    (FILFILE_FORMAT = (
+    TYPE = 'CSV'
+    FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+    SKIP_HEADER = 1
+    NULL_IF = ('NULL', 'null', '')
+)IMIT    10;
 ```
 
 ### Step 3: Load CSV Data
@@ -565,13 +592,9 @@ USE ROLE SYSADMIN;
 USE SCHEMA IOT_LAB.SENSORS;
 
 COPY INTO SENSOR_READINGS (READING_ID, SENSOR_NAME, SENSOR_TYPE, READING_TS, VALUE, UNIT)
-FROM @IOT_INT_STAGE/iot/export/
-FILE_FORMAT = (
-    TYPE = 'CSV'
-    FIELD_OPTIONALLY_ENCLOSED_BY = '"'
-    SKIP_HEADER = 1
-    NULL_IF = ('NULL', 'null', '')
-)PATTERN = '.*readings.*\\.csv.gz'
+FROM @IOT_INT_STAGE/export/
+FILE_FORMAT = 'CSV_FORMAT_IOT'
+PATTERN = '.*readings.*\\.csv.gz'
 ON_ERROR = 'CONTINUE';
 ```
 
@@ -693,7 +716,7 @@ OVERWRITE = FALSE;
 > WHEN
 >     SYSTEM$STREAM_HAS_DATA('ANOMALIES_STREAM')
 > AS
->     COPY INTO @IOT_INT_STAGE/sync/ FROM (...);
+>   iot/  COPY INTO @IOT_INT_STAGE/sync/ FROM (...);
 > ```
 > This creates an event-driven pipeline that exports anomalies as soon as they're detected.
 
@@ -705,7 +728,7 @@ OVERWRITE = FALSE;
 USE ROLE SYSADMIN;
 USE SCHEMA IOT_LAB.SENSORS;
 
-LIST @IOT_INT_STAGE/iot/sync/;
+LIST @IOT_INT_STAGE/sync/;
 ```
 
 You should see one or more CSV files containing the anomaly data.
@@ -797,21 +820,7 @@ USE SCHEMA IOT_LAB.SENSORS;
 DROP TABLE IF EXISTS SENSOR_ANOMALIES;
 DROP TABLE IF EXISTS SENSOR_READINGS;
 
-DROP STAGE IF EXISTS IOT_INT_STAGE;
-
-DROP SCHEMA IF EXISTS IOT_LAB.SENSORS;
-DROP DATABASE IF EXISTS IOT_LAB;
-DROP WAREHOUSE IF EXISTS IOT_WH;
-```
-
-### Infrastructure Cleanup (Optional)
-
-To fully remove all infrastructure including the Postgres instance:
-
-```sql
--- Cleanup: Infrastructure Cleanup (Optional)
--- Execute in: Snowsight (Snowflake)
-USE ROLE ACCOUNTADMIN;
+DROP STAUSE ROLE ACCOUNTADMIN;
 
 DROP STORAGE INTEGRATION IF EXISTS SF_LAB_INTS3_INTEGRATION;
 
@@ -820,7 +829,18 @@ DROP POSTGRES INSTANCE IF EXISTS IOT_PG;
 USE SCHEMA PG_NETWORK_DB.PG_NETWORK;
 
 DROP NETWORK POLICY IF EXISTS PG_IOT_NETWORK_POLICY;
-DROP NETWORK RULE IF EXISTS PG_IOT_INGRESS_RULE;
+DROP NETWORK RULE IF EXISTS PG_IOT_INGRESS_RULE;Execute in: Snowsight (Snowflake)
+USE ROLE ACCOUNTADMIN;
+
+DROP POSTGRES INSTANCE IF EXISTS IOT_PG;
+
+USE SCHEMA PG_NETWORK_DB.PG_NETWORK;
+
+DROP NETWORK POLICY IF EXISTS PG_IOT_NETWORK_POLICY;
+DROP NETWORK RULE IF EXISTS PGand _IOT_INGRESS_RULE;
+
+DROP STAGE IF EXISTS IOT_INT_STAGE;
+DROP STORAGE INTEGRATION IF EXISTS SF_LAB_INTS3_INTEGRATION;
 ```
 
 <!-- ------------------------ -->
@@ -831,7 +851,7 @@ DROP NETWORK RULE IF EXISTS PG_IOT_INGRESS_RULE;
 Congratulations! You have successfully:
 
 - Created a Snowflake Postgres instance with pg_lake enabled
-- Configured internal stage and storage integration for both pg_lake and Snowflake
+- Configured internal stage storage integration for both pg_lake and Snowflake
 - Exported data from Postgres to internal stage in CSV format using pg_lake
 - Queried internal stage files directly using pg_lake foreign tables
 - Loaded data into Snowflake using COPY INTO
