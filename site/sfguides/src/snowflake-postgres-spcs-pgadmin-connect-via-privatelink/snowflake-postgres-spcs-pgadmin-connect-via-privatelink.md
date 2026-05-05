@@ -13,7 +13,7 @@ feedback link: https://github.com/Snowflake-Labs/sfguides/issues
 
 ### What You Will Build
 
-This quickstart walks through deploying pgAdmin4 as a Snowpark Container Services (SPCS) service and connecting it to a Snowflake Postgres instance over Private Link. All database traffic stays on Snowflake's private network backbone and never leaves the Snowflake environment.
+This quickstart walks through deploying pgAdmin4 as a Snowpark Container Services (SPCS) service and connecting it to a Snowflake Postgres instance over Private Link. All database traffic stays on Snowflake's private network backbone and never leaves the Snowflake environment. This example uses the pgAdmin container as an example, but the same steps can be used to deploy other containers that need Postgres.
 
 [pgAdmin](https://www.pgadmin.org/) is an open-source administration and development platform for PostgreSQL. It provides a web-based interface for managing databases, writing and executing queries, monitoring server activity, and visualizing data. Running pgAdmin inside SPCS rather than on an external machine eliminates the need to expose your Postgres instance to the public internet or configure VPN tunnels. The connection uses Private Link over Snowflake's internal network, reducing latency, simplifying network security, and ensuring that credentials and query traffic never traverse external networks.
 
