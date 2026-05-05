@@ -582,11 +582,9 @@ The combination of DCM Projects and Tasks gives you the same production-grade wo
 You've completed the 4-part DCM series. Ready to go deeper?
 
 - **[DCM Projects Documentation](https://docs.snowflake.com/en/user-guide/dcm-projects/dcm-projects-overview)** — full reference for advanced DCM features: release channels, target-state management for more object types, and CI/CD integration patterns.
-- **[DCM Projects — Extended Capabilities](https://docs.snowflake.com/en/dcm-projects/dcm-projects-early-access)** — newest DCM features as they land.
 
 ### Related Resources
 - [DCM Projects Documentation](https://docs.snowflake.com/en/user-guide/dcm-projects/dcm-projects-overview)
-- [DCM Projects — Extended Capabilities](https://docs.snowflake.com/en/dcm-projects/dcm-projects-early-access)
 - [Snowflake Tasks and Task Graphs](https://docs.snowflake.com/en/user-guide/tasks-graphs)
 - [Finalizer Tasks](https://docs.snowflake.com/en/user-guide/tasks-intro#finalizer-task)
 - [Data Metric Functions](https://docs.snowflake.com/en/user-guide/data-quality-intro)
