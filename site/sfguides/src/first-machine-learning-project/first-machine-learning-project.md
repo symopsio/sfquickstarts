@@ -11,7 +11,7 @@ status: Published
 
 ## Overview
 
-This project demonstrates how to build a complete machine learning project for classifying bear species using physical characteristics and image analysis. The project is structured as a 5-part learning journey that covers the entire ML lifecycle from data ingestion to model deployment.
+This project demonstrates how to build a complete machine learning project for classifying bear species using physical characteristics and image analysis. The project is structured as a 5-part learning journey that covers the entire [ML lifecycle](http://www.snowflake.com/ml) from data ingestion to model deployment.
 
 This guide provides a high-level overview of the 5-part series, which is available as a set of Snowflake Notebooks and Python files.
 
@@ -163,7 +163,7 @@ The final step is to create a user-facing application that uses the model you ju
 
 ## Conclusion And Resources
 
-Congratulations! You've successfully built a complete end-to-end machine learning pipeline in Snowflake. You've ingested and wrangled data using Modin, performed image analysis with Cortex AI, explored data with Streamlit, trained multiple models using `scikit-learn`, and tracked your experiments using Snowflake ML.
+Congratulations! You've successfully built a complete end-to-end machine learning pipeline in Snowflake. You've ingested and wrangled data using Modin, performed image analysis with Cortex AI, explored data with Streamlit, trained multiple models using `scikit-learn`, and tracked your experiments using [Snowflake ML](http://www.snowflake.com/ml).
 
 ### What You Learned
 - How to ingest and process data using the Snowpark pandas API (Modin).

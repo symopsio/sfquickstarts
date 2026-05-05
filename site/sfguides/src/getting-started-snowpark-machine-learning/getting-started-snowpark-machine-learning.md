@@ -28,8 +28,6 @@ Learn more about [Snowpark](/snowpark/).
 
 > Note: Snowpark ML is now outdated. To learn more about how to build scalable ML models with fully managed CPUs and GPUs in a pre-configured environment for large-scale ML training, check out the [Container Runtime docs](https://docs.snowflake.com/en/developer-guide/snowflake-ml/container-runtime-ml) and try one of our [newer ML quickstarts](https://docs.snowflake.com/en/developer-guide/snowflake-ml/quickstart).
 
-Snowpark ML is a new library for faster and more intuitive end-to-end ML development in Snowflake. Snowpark ML has 2 APIs: Snowpark ML Modeling (in Public Preview) for model development and Snowpark ML Operations (in Private Preview) for model deployment.
-
 This quickstart will focus on the Snowpark ML Modeling API, which scales out feature engineering and simplifies ML training execution in Snowflake.
 
 The source code for this quickstart is available on [GitHub](https://github.com/Snowflake-Labs/sfguide-getting-started-machine-learning).

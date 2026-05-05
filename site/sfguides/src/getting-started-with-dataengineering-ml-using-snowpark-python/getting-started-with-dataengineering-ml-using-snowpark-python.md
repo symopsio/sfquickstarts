@@ -37,7 +37,7 @@ Learn more about [Snowpark](/snowpark/).
 
 ### What is Snowflake ML?
 
-Snowflake ML is the integrated set of capabilities for end-to-end machine learning in a single platform on top of your governed data. This is a unified environment for ML development and productionization that is optimized for large-scale distributed feature engineering, model training and inference on CPU and GPU compute without manual tuning or configuration.
+Snowflake ML is the integrated set of capabilities for end-to-end [machine learning](http://www.snowflake.com/ml) in a single platform on top of your governed data. This is a unified environment for ML development and productionization that is optimized for large-scale distributed feature engineering, model training and inference on CPU and GPU compute without manual tuning or configuration.
 
 ![Snowpark](assets/new-snowflake-ml-architecture.png)
 

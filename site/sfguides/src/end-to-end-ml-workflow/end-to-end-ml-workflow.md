@@ -13,7 +13,7 @@ feedback link: https://github.com/Snowflake-Labs/sfguides/issues
 <!-- ------------------------ -->
 ## Overview
 
-In this guide, you'll learn how to build and deploy a complete machine learning workflow entirely within Snowflake ML. You'll work through a mortgage lending prediction use case, implementing each stage of the ML lifecycle from feature engineering to model deployment and monitoring.
+In this guide, you'll learn how to build and deploy a complete machine learning workflow entirely within [Snowflake ML](http://www.snowflake.com/ml). You'll work through a mortgage lending prediction use case, implementing each stage of the ML lifecycle from feature engineering to model deployment and monitoring.
 
 This tutorial showcases Snowflake's ML capabilities, including:
 - Feature Store for defining and managing features
@@ -755,7 +755,7 @@ DATEADD(DAY, -60, CURRENT_DATE()) -- start date
 
 ## Conclusion And Resources
 
-You just walked through a guided experience building and deploying a complete end-to-end machine learning workflow within Snowflake ML for a mortgage lending prediction case. The workflow covers feature engineering with Snowflake Feature Store, model training and hyperparameter optimization using Snowflake ML APIs, model logging and management with Snowflake Model Registry, and model performance tracking and drift detection via ML Observability. 
+You just walked through a guided experience building and deploying a complete end-to-end machine learning workflow within [Snowflake ML](http://www.snowflake.com/ml) for a mortgage lending prediction case. The workflow covers feature engineering with Snowflake Feature Store, model training and hyperparameter optimization using Snowflake ML APIs, model logging and management with Snowflake Model Registry, and model performance tracking and drift detection via ML Observability. 
 
 Ready for more? After you complete this quickstart, you can try another guided ML example [here](https://docs.snowflake.com/en/developer-guide/snowflake-ml/quickstart). 
 
