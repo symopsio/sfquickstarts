@@ -573,7 +573,7 @@ LIMIT    10;
 ### Step 2: Load CSV Data
 
 ```sql
--- Load Data into Snowflake: Step 3 - Load CSV Data
+-- Load Data into Snowflake: Step 2 - Load CSV Data
 -- Execute in: Snowsight (Snowflake)
 USE ROLE SYSADMIN;
 USE SCHEMA IOT_LAB.SENSORS;
@@ -595,7 +595,7 @@ ON_ERROR = 'CONTINUE';
 ### Step 3: Verify Load
 
 ```sql
--- Load Data into Snowflake: Step 4 - Verify Load
+-- Load Data into Snowflake: Step 3 - Verify Load
 -- Execute in: Snowsight (Snowflake)
 USE ROLE SYSADMIN;
 USE SCHEMA IOT_LAB.SENSORS;
