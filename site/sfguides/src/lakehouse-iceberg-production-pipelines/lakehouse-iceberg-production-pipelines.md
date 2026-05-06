@@ -22,6 +22,7 @@ The guide is bronze-first: each layer is verified before the next one starts, so
 - How to prepare a bronze layer in AWS using Glue, S3, Lake Formation, and task-driven automation
 - How Snowflake uses a catalog integration and Catalog Linked Databases to query externally managed Iceberg metadata without ETL duplication
 - How Dynamic Iceberg Tables transform bronze JSON into production-ready silver aggregates while preserving Iceberg format and multi-engine access
+- How to make your silver data AI-ready with a Semantic View for natural-language querying via Snowflake Intelligence
 - How to build a live Streamlit in Snowflake dashboard over silver Dynamic Tables
 - How to query Snowflake-managed Iceberg tables from DuckDB via the Horizon Iceberg REST Catalog
 
@@ -66,6 +67,7 @@ Events land as raw JSON strings in a single **event** column in the bronze Icebe
 | Catalog | Snowflake Catalog Integration | Connects Snowflake to Glue Iceberg REST with SigV4 + LF vended credentials |
 | CLD | Catalog-Linked Database | Mirrors Glue namespaces and tables as Snowflake schemas — no data copy |
 | Silver | Dynamic Iceberg Tables | Transforms JSON bronze into 5 aggregation tables; writes Iceberg back to S3 |
+| AI-Ready | Snowflake Intelligence | Semantic View over silver DTs enables natural-language querying via Cortex Analyst |
 | Dashboard | Streamlit in Snowflake | Live dashboard over silver DTs; zero local server |
 | Cross-engine | DuckDB via HIRC | Queries silver Iceberg tables through Snowflake's Horizon REST Catalog |
 
@@ -652,6 +654,317 @@ DROP DATABASE IF EXISTS balloon_silver;
 DT refreshes stop automatically when the database is dropped. The external volume and S3 data are **not** deleted — remove those separately if needed.
 
 <!-- ------------------------ -->
+## Snowflake Intelligence
+
+Your silver Dynamic Iceberg Tables are now **AI-ready**. By creating a [Semantic View](https://docs.snowflake.com/en/user-guide/views-semantic) over the five silver tables, you enable natural-language querying via [Snowflake Intelligence](https://docs.snowflake.com/en/user-guide/snowflake-intelligence) and the [Cortex Analyst](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-analyst) API — no additional ETL, no model training, no external tools.
+
+A Semantic View defines the business meaning of your tables, columns, and metrics in YAML. Once created, users (and AI agents) can ask questions like:
+
+- *"Who is the top-scoring player?"*
+- *"Which balloon color gives the highest average points?"*
+- *"Show me score trends over the last hour"*
+
+…and get accurate SQL-backed answers grounded in your silver data.
+
+### Easy Path — Interactive Notebook
+
+Open [si_lab_guide.ipynb](https://github.com/Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines/blob/main/notebooks/si_lab_guide.ipynb) in Snowflake Notebooks for a guided walkthrough. The notebook uses the same environment variables as the DT Lab Guide and includes a **Cortex Code prompt** to auto-generate the Semantic View, plus step-by-step instructions for configuring the Intelligence agent.
+
+### Detailed Path
+
+#### Create the Semantic View
+
+Create a Semantic View that describes all five silver tables with their business context. Replace **balloon_silver** with your **SNOWFLAKE_SILVER_DATABASE** if different:
+
+```sql
+CREATE OR REPLACE SEMANTIC VIEW summit26_ar103_balloon_silver.silver.balloon_game_semantic_view
+
+  TABLES (
+    player_leaderboard AS summit26_ar103_balloon_silver.silver.dt_player_leaderboard
+      PRIMARY KEY (player)
+      WITH SYNONYMS ('leaderboard', 'rankings', 'top players')
+      COMMENT = 'Aggregated player scores: total score, bonus pops, last event timestamp per player',
+
+    color_stats AS summit26_ar103_balloon_silver.silver.dt_balloon_color_stats
+      UNIQUE (player, balloon_color)
+      WITH SYNONYMS ('color breakdown', 'player colors', 'color scores')
+      COMMENT = 'Per-player breakdown by balloon color: pops, points, and bonus hits',
+
+    realtime_scores AS summit26_ar103_balloon_silver.silver.dt_realtime_scores
+      WITH SYNONYMS ('live scores', 'recent scores', 'hot streaks')
+      COMMENT = '15-second windowed score totals per player for time-series analysis',
+
+    colored_pops AS summit26_ar103_balloon_silver.silver.dt_balloon_colored_pops
+      WITH SYNONYMS ('detailed pops', 'player color windows')
+      COMMENT = 'Most granular view: per-player, per-color pops in 15-second time windows',
+
+    color_trends AS summit26_ar103_balloon_silver.silver.dt_color_performance_trends
+      WITH SYNONYMS ('color trends', 'color performance', 'best colors')
+      COMMENT = 'Average score per pop and total pops by balloon color over 15-second windows'
+  )
+
+  RELATIONSHIPS (
+    color_stats_to_leaderboard AS
+      color_stats (player) REFERENCES player_leaderboard,
+    realtime_to_leaderboard AS
+      realtime_scores (player) REFERENCES player_leaderboard,
+    colored_pops_to_leaderboard AS
+      colored_pops (player) REFERENCES player_leaderboard,
+    colored_pops_to_color_stats AS
+      colored_pops (player, balloon_color) REFERENCES color_stats
+  )
+
+  FACTS (
+    player_leaderboard.total_score AS player_leaderboard.total_score
+      WITH SYNONYMS = ('total score', 'overall score', 'total points')
+      COMMENT = 'Cumulative score across all balloon pops',
+    player_leaderboard.bonus_pops AS player_leaderboard.bonus_pops
+      WITH SYNONYMS = ('bonus pops', 'bonuses', 'bonus count')
+      COMMENT = 'Number of pops where player hit their favorite color',
+    color_stats.balloon_pops AS color_stats.balloon_pops
+      WITH SYNONYMS = ('pops', 'pop count', 'times popped')
+      COMMENT = 'Number of times this player popped this color',
+    color_stats.points_by_color AS color_stats.points_by_color
+      WITH SYNONYMS = ('points by color', 'color points', 'color score')
+      COMMENT = 'Total points earned from popping this color',
+    color_stats.bonus_hits AS color_stats.bonus_hits
+      WITH SYNONYMS = ('bonus hits', 'color bonuses')
+      COMMENT = 'Number of favorite-color bonus pops for this color',
+    realtime_scores.window_score AS realtime_scores.total_score
+      WITH SYNONYMS = ('window score', 'live score', 'current score')
+      COMMENT = 'Sum of scores within the 15-second window',
+    colored_pops.window_pops AS colored_pops.balloon_pops
+      COMMENT = 'Pop count for this player+color in this window',
+    colored_pops.window_points AS colored_pops.points_by_color
+      COMMENT = 'Points for this player+color in this window',
+    colored_pops.window_bonus AS colored_pops.bonus_hits
+      COMMENT = 'Bonus pops for this player+color in this window',
+    color_trends.avg_score_per_pop AS color_trends.avg_score_per_pop
+      WITH SYNONYMS = ('efficiency', 'points per pop', 'scoring rate', 'best value')
+      COMMENT = 'Average points earned per pop of this color in this window',
+    color_trends.total_pops AS color_trends.total_pops
+      WITH SYNONYMS = ('volume', 'popularity', 'total pops')
+      COMMENT = 'Total pops of this color in this window'
+  )
+
+  DIMENSIONS (
+    player_leaderboard.player_name AS player_leaderboard.player
+      WITH SYNONYMS = ('player', 'gamer', 'username', 'who')
+      COMMENT = 'Unique player identifier',
+    player_leaderboard.last_active AS player_leaderboard.last_event_ts
+      WITH SYNONYMS = ('last active', 'last seen', 'last played')
+      COMMENT = 'Timestamp of the most recent game event for this player',
+    color_stats.cs_player AS color_stats.player
+      COMMENT = 'Player identifier in color stats',
+    color_stats.color AS color_stats.balloon_color
+      WITH SYNONYMS = ('balloon color', 'color', 'balloon type')
+      COMMENT = 'Color of the balloon (red, blue, green, yellow, etc.)',
+    color_stats.cs_last_event AS color_stats.last_event_ts
+      COMMENT = 'Most recent pop of this color by this player',
+    realtime_scores.rs_player AS realtime_scores.player
+      COMMENT = 'Player identifier in realtime scores',
+    realtime_scores.window_start AS realtime_scores.window_start
+      WITH SYNONYMS = ('start time', 'window start')
+      COMMENT = 'Start of the 15-second time window',
+    realtime_scores.window_end AS realtime_scores.window_end
+      WITH SYNONYMS = ('end time', 'window end')
+      COMMENT = 'End of the 15-second time window',
+    colored_pops.cp_player AS colored_pops.player
+      COMMENT = 'Player identifier in colored pops',
+    colored_pops.cp_color AS colored_pops.balloon_color
+      COMMENT = 'Balloon color in the detailed window view',
+    colored_pops.cp_window_start AS colored_pops.window_start
+      COMMENT = 'Start of the time window',
+    colored_pops.cp_window_end AS colored_pops.window_end
+      COMMENT = 'End of the time window',
+    color_trends.ct_color AS color_trends.balloon_color
+      WITH SYNONYMS = ('trending color', 'color trend')
+      COMMENT = 'Balloon color for performance trend analysis',
+    color_trends.ct_window_start AS color_trends.window_start
+      COMMENT = 'Start of the trend analysis window',
+    color_trends.ct_window_end AS color_trends.window_end
+      COMMENT = 'End of the trend analysis window'
+  )
+
+  METRICS (
+    player_leaderboard.m_total_score AS SUM(player_leaderboard.total_score)
+      WITH SYNONYMS = ('total points', 'combined score')
+      COMMENT = 'Total cumulative score across all players',
+    player_leaderboard.m_total_bonus_pops AS SUM(player_leaderboard.bonus_pops)
+      WITH SYNONYMS = ('bonus total', 'all bonuses')
+      COMMENT = 'Total bonus pops across all players',
+    player_leaderboard.m_player_count AS COUNT(player_leaderboard.player)
+      WITH SYNONYMS = ('number of players', 'how many players')
+      COMMENT = 'Count of players on the leaderboard',
+    color_stats.m_total_pops_by_color AS SUM(color_stats.balloon_pops)
+      WITH SYNONYMS = ('total balloon pops', 'all pops')
+      COMMENT = 'Total balloon pops aggregated across players for a given color',
+    color_stats.m_total_points_by_color AS SUM(color_stats.points_by_color)
+      WITH SYNONYMS = ('color points total', 'total color points')
+      COMMENT = 'Total points aggregated across players for a given color',
+    color_stats.m_avg_points_per_pop AS AVG(color_stats.points_by_color / NULLIF(color_stats.balloon_pops, 0))
+      WITH SYNONYMS = ('efficiency', 'scoring rate', 'points per pop')
+      COMMENT = 'Average points per pop across colors',
+    realtime_scores.m_max_window_score AS MAX(realtime_scores.window_score)
+      WITH SYNONYMS = ('best window', 'peak score', 'hottest moment')
+      COMMENT = 'Highest score in any single 15-second window',
+    realtime_scores.m_avg_window_score AS AVG(realtime_scores.window_score)
+      WITH SYNONYMS = ('average window score', 'typical window')
+      COMMENT = 'Average score per 15-second window',
+    color_trends.m_avg_efficiency AS AVG(color_trends.avg_score_per_pop)
+      WITH SYNONYMS = ('trend efficiency', 'color efficiency')
+      COMMENT = 'Weighted average score per pop across time windows',
+    color_trends.m_total_pops AS SUM(color_trends.total_pops)
+      WITH SYNONYMS = ('color popularity', 'total color pops')
+      COMMENT = 'Total balloon pops across all colors and time windows'
+  )
+
+  COMMENT = 'AI-ready semantic layer over balloon game silver Dynamic Iceberg Tables'
+
+  AI_SQL_GENERATION 'This is a balloon popping game. Players pop colored balloons to earn points. Some pops are bonus pops worth extra. The leaderboard has overall rankings by total_score. Color stats show which colors each player pops most and points per color. Realtime scores show 15-second windows of activity. Color trends show which balloon colors give the best points-per-pop over time. When asked about the top player, use the leaderboard total_score. When asked which color scores best, use color_trends avg_score_per_pop. When asked who is hot right now, use realtime_scores with the most recent window_start.';
+```
+
+#### Verify the Semantic View
+
+Check the view was created and inspect its structure:
+
+```sql
+SHOW SEMANTIC VIEWS IN SCHEMA balloon_silver.silver;
+```
+
+```sql
+DESC SEMANTIC VIEW balloon_silver.silver.balloon_game_semantic_view;
+```
+
+#### Configure Snowflake Intelligence with the Semantic View
+
+With the Semantic View created, set up a Snowflake Intelligence **agent** that uses it as a tool for natural-language querying. This follows the same pattern as the official [Getting Started with Snowflake Intelligence](https://www.snowflake.com/en/developers/guides/getting-started-with-snowflake-intelligence/) guide — but since we already have a Semantic View (not a YAML file), setup is simpler.
+
+##### Required Privileges
+
+Lab users running as **ACCOUNTADMIN** already have the necessary permissions — no additional grants are needed. ACCOUNTADMIN inherits all privileges including Cortex AI access and ownership of objects you create.
+
+> **Production note:** In a production environment, you would grant `SNOWFLAKE.CORTEX_USER` and `REFERENCES` + `SELECT` on the Semantic View to consumer roles:
+> ```sql
+> GRANT DATABASE ROLE SNOWFLAKE.CORTEX_USER TO ROLE <consumer_role>;
+> GRANT REFERENCES, SELECT ON SEMANTIC VIEW balloon_silver.silver.balloon_game_semantic_view
+>   TO ROLE <consumer_role>;
+> ```
+
+##### Create the Agent
+
+**1. Navigate to the Agent admin page** — In Snowsight, go to **AI & ML → Agents**. Confirm your role is set to **ACCOUNTADMIN** (top-right role selector).
+
+**2. Create a new agent:**
+
+- Click **+ Create agent**
+- **Agent object name:** `balloon_game_agent` (internal identifier)
+- **Display name:** `Balloon Game Analytics` (shown to users in the chat UI)
+- **Description:** *"Ask questions about balloon game player scores, color stats, and performance trends from the silver lakehouse tables."*
+- Click **Create agent**
+
+**3. Add the Cortex Analyst tool (Semantic View):**
+
+- Select the **Tools** tab in the agent editor
+- Find **Cortex Analyst** and click **+ Add**
+- Choose **Semantic View** (not "Semantic model file" — we already have a view, not a YAML on a stage)
+- Select database: `balloon_silver`, schema: `silver`, view: `balloon_game_semantic_view`
+- For **Description**, click **Generate with Cortex** to auto-generate a tool description from your semantic metadata — or write your own, e.g.: *"Queries structured balloon game data including player leaderboards, color stats, real-time scores, and performance trends. Use for any question about players, scores, colors, or time-based patterns."*
+- Set the **Warehouse** to your lab warehouse (e.g. `KAMESH_DEMOS_S` or your assigned warehouse)
+
+**4. (Optional) Add the Email tool:**
+
+If you want the agent to send query results or insights via email (e.g. *"Email me the top 5 players leaderboard"*), first create the notification integration and stored procedure in your silver database:
+
+```sql
+-- Notification integration for email delivery
+CREATE OR REPLACE NOTIFICATION INTEGRATION email_integration
+  TYPE = EMAIL
+  ENABLED = TRUE
+  DEFAULT_SUBJECT = 'Balloon Game Analytics';
+
+-- Stored procedure that the agent calls to send emails
+CREATE OR REPLACE PROCEDURE balloon_silver.silver.send_email(
+    recipient_email VARCHAR,
+    subject VARCHAR,
+    body VARCHAR
+)
+RETURNS VARCHAR
+LANGUAGE SQL
+AS
+BEGIN
+    CALL SYSTEM$SEND_EMAIL(
+        'email_integration',
+        :recipient_email,
+        :subject,
+        :body,
+        'text/html'
+    );
+    RETURN 'Email sent successfully to ' || :recipient_email;
+END;
+
+-- Grant execute to your role (ACCOUNTADMIN already has it)
+GRANT USAGE ON PROCEDURE balloon_silver.silver.send_email(VARCHAR, VARCHAR, VARCHAR)
+  TO ROLE ACCOUNTADMIN;
+```
+
+> **Source:** Adapted from the [official Snowflake Intelligence setup](https://github.com/Snowflake-Labs/sfguide-getting-started-with-snowflake-intelligence/blob/main/setup.sql#L160-L210).
+
+Then, in the agent editor:
+
+- In the **Tools** tab, find **Custom Tools** and click **+ Add**
+- Select database: `balloon_silver`, schema: `silver`, procedure: `send_email`
+- Configure parameter descriptions (these guide the agent on how to use the tool):
+  - **recipient_email:** *"If the email is not provided, send it to the current user's email address."*
+  - **subject:** *"If subject is not provided, use 'Balloon Game Analytics'."*
+  - **body:** *"If body is not provided, summarize the last question and use that as content for the email."*
+- The agent can now send results via email when prompted
+
+> **Note:** The Email tool is optional for this lab. Skip it if you only want to explore data interactively. Your Snowflake user must have a verified email address for delivery to work.
+
+**5. Add sample questions (recommended):**
+
+- Select the **Voice** tab (or **Instructions** tab depending on your Snowsight version)
+- Under **Sample questions**, add examples that help users get started:
+  - *"Who are the top 5 players by total score?"*
+  - *"Which balloon color gives the best average points per pop?"*
+  - *"Show me score trends over the last few time windows"*
+  - *"How many total bonus pops have all players earned?"*
+  - *"Email me a summary of the top 3 players"*
+
+**6. Set orchestration instructions:**
+
+- In the **Instructions** section, add the following orchestration instruction:
+  - *"Whenever you can answer visually with a chart, always choose to generate a chart even if the user didn't specify to."*
+
+**7. Save the agent** — Click **Save** in the top-right corner. The agent is now live.
+
+##### Access the Agent
+
+Once saved, users can access the agent in two ways:
+
+- **Snowflake Intelligence chat:** Navigate to **AI & ML → Snowflake Intelligence**, select `Balloon Game Analytics` from the agent picker in the chat bar, and start asking questions
+- **Direct URL:** Go to [ai.snowflake.com](https://ai.snowflake.com) and select the agent
+
+> **How it works:** When a user asks a question, the agent routes it to Cortex Analyst, which reads the Semantic View's table/column descriptions, relationships, and primary keys to generate accurate SQL. The query executes against your silver Dynamic Iceberg Tables and returns results in the chat — no SQL knowledge required.
+
+#### Try It with Snowflake Intelligence
+
+Once configured, open your Intelligence app and ask natural-language questions about your balloon game data. Intelligence will ground its SQL generation in the semantic context you defined — table relationships, column descriptions, and metric definitions.
+
+Example questions to try:
+
+- *"Who are the top 5 players by total score?"*
+- *"What's the most popular balloon color across all players?"*
+- *"Which color gives the best average points per pop?"*
+- *"Show me how player scores trend over time windows"*
+- *"Which players have the most bonus pops as a percentage of total pops?"*
+- *"How many total bonus pops have all players earned?"*
+- *"Email me a summary of the top 3 players"*
+
+> **Why this matters:** Your silver data was already queryable by SQL users and BI tools. The Semantic View now makes it queryable by **anyone** — business analysts, executives, or automated agents — using plain English. The same Iceberg data powers dashboards, cross-engine queries (DuckDB), **and** AI-driven analytics.
+
+<!-- ------------------------ -->
 ## SiS Dashboard
 
 After the silver Dynamic Tables are live, deploy a Streamlit in Snowflake app that visualizes the balloon game event data. The app runs entirely in your Snowflake account next to your data.
@@ -849,7 +1162,29 @@ Two HIRC-specific rules to keep in mind before you start:
 - **Warehouse name is case-sensitive** — the catalog name in **ATTACH** must be **UPPERCASE** (e.g. **'BALLOON_SILVER'**). Lowercase returns HTTP 404.
 - **GRANT ON ALL TABLES skips Dynamic Iceberg Tables** — you must use **ON ALL DYNAMIC TABLES** and **ON FUTURE DYNAMIC TABLES**; the plain **TABLES** variant silently grants nothing.
 
-### Quick Start
+### Easy Path — Interactive Notebook
+
+Import [duckdb_lab_guide.ipynb](https://github.com/Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines/blob/main/notebooks/duckdb_lab_guide.ipynb) into [Google Colab](https://colab.research.google.com/) or any Jupyter-compatible environment (JupyterLab, VS Code, etc.) for an interactive walkthrough of external engine integration via HIRC.
+
+**Before running the notebook**, complete the HIRC setup in Snowflake using [05_duckdb_hirc_setup.ipynb](https://github.com/Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines/blob/main/notebooks/05_duckdb_hirc_setup.ipynb) in Snowflake Notebooks. This creates the service account, reader role, network policy, and PAT needed for DuckDB authentication.
+
+The DuckDB notebook:
+
+- Installs the DuckDB Iceberg and HTTPFS extensions
+- Authenticates to Snowflake's HIRC endpoint using the PAT created in the setup notebook
+- Attaches the silver database and discovers all five Dynamic Iceberg Tables
+- Runs cross-engine queries against the same silver data — proving multi-engine interoperability without data copies
+
+> **Tip:** To open in Google Colab directly, prepend `https://colab.research.google.com/github/` to the notebook path:
+> ```
+> https://colab.research.google.com/github/Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines/blob/main/notebooks/duckdb_lab_guide.ipynb
+> ```
+
+Follow the **Detailed Path** below for step-by-step shell commands and raw DuckDB SQL.
+
+### Detailed Path
+
+#### Quick Setup
 
 The fastest path: set three env vars, run one task, open the notebook.
 
@@ -885,9 +1220,9 @@ GRANT SELECT ON FUTURE DYNAMIC TABLES IN SCHEMA balloon_silver.silver TO ROLE du
 
 [duckdb_lab_guide.ipynb](https://github.com/Snowflake-Labs/sfguide-lakehouse-iceberg-production-pipelines/blob/main/notebooks/duckdb_lab_guide.ipynb) — loads the PAT from the OS keyring automatically, installs the DuckDB Iceberg extension, attaches the silver database via HIRC, and queries all five silver DTs.
 
-### Detailed Walkthrough
+#### Detailed Walkthrough
 
-This section explains each step in the Quick Start and shows the raw DuckDB SQL if you prefer to run it outside the notebook.
+This section explains each step in the Quick Setup and shows the raw DuckDB SQL if you prefer to run it outside the notebook.
 
 #### Prerequisites
 
@@ -1253,6 +1588,7 @@ Starting from a raw event stream in AWS Glue, you connected Snowflake directly t
 - How to configure a Snowflake Glue Iceberg REST catalog integration with a two-role Lake Formation setup
 - How to create a catalog-linked database that reflects externally managed Iceberg tables without data duplication
 - How to build Dynamic Iceberg Tables that transform bronze JSON into production-ready silver aggregates on a declared target lag
+- How to make your silver data AI-ready by creating a Semantic View that enables natural-language querying via Snowflake Intelligence and Cortex Analyst
 - How to deploy a Streamlit in Snowflake dashboard that reads from silver Dynamic Tables
 - How to query Snowflake-managed Iceberg tables from DuckDB via the Horizon REST Catalog using a Programmatic Access Token
 - How intent-driven development with Cortex Code can replace manual coding workflows — and how refining prompts iteratively captures reusable engineering specifications
@@ -1265,6 +1601,9 @@ Documentation:
 - [Configure a catalog integration for AWS Glue Iceberg REST](https://docs.snowflake.com/en/user-guide/tables-iceberg-configure-catalog-integration-rest-glue)
 - [Use a catalog-linked database](https://docs.snowflake.com/en/user-guide/tables-iceberg-catalog-linked-database)
 - [Create dynamic Apache Iceberg tables](https://docs.snowflake.com/en/user-guide/dynamic-tables-create-iceberg)
+- [Semantic Views](https://docs.snowflake.com/en/user-guide/views-semantic)
+- [Snowflake Intelligence](https://docs.snowflake.com/en/user-guide/snowflake-intelligence)
+- [Cortex Analyst](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-analyst)
 - [Getting started with Streamlit in Snowflake](https://docs.snowflake.com/en/developer-guide/streamlit/getting-started/overview)
 - [Programmatic Access Tokens](https://docs.snowflake.com/en/user-guide/programmatic-access-tokens)
 
